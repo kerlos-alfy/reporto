@@ -19,7 +19,7 @@ Developed by **[Kerlos Alfy](https://kodeaa.com)** · Founder, [Kodea Digital Cr
 
 **Reporto** is a full-stack web application that replaces paper-based and spreadsheet-driven daily reporting workflows on construction sites. Engineers submit structured daily reports from their phones; project managers and executives review live dashboards, manpower analytics, and exportable Excel reports — all from a single platform.
 
-Built as a pilot for **Agile Prime General Contracting L.L.C.** (UAE), Reporto is designed to scale across multiple projects, multiple sites, and multiple user roles without friction.
+Built as a pilot for **ReportoGeneral Contracting L.L.C.** (UAE), Reporto is designed to scale across multiple projects, multiple sites, and multiple user roles without friction.
 
 ---
 
@@ -319,7 +319,7 @@ Engineers can be excluded from the alert individually (e.g. during leave) via th
 | Developer | Kerlos Alfy |
 | Studio | [Kodea Digital Creative Studio](https://kodeaa.com) |
 | Website | [kodeaa.com](https://kodeaa.com) |
-| Pilot Client | Agile Prime General Contracting L.L.C. |
+| Pilot Client | ReportoGeneral Contracting L.L.C. |
 | Location | Dubai, UAE |
 
 ---

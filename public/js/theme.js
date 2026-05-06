@@ -1,5 +1,5 @@
 /**
- * theme.js — Agile Prime Theme Switcher
+ * theme.js — ReportoTheme Switcher
  * - Applies theme immediately from localStorage (zero flicker)
  * - Syncs choice to DB via /api/theme (fire-and-forget)
  * - Handles the swatch panel open/close

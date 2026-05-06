@@ -101,10 +101,10 @@ function fillCell(ws, col, row, bgArgb, fgArgb, value, bold = false, size = 10, 
 // ═══════════════════════════════════════════════════════════════════════════
 async function generateExcel(data, filters = {}) {
   const wb = new ExcelJS.Workbook();
-  wb.creator  = 'Agile Prime — SitePulse';
+  wb.creator  = 'Reporto— SitePulse';
   wb.created  = new Date();
   wb.modified = new Date();
-  wb.company  = 'Agile Prime General Contracting L.L.C.';
+  wb.company  = 'ReportoGeneral Contracting L.L.C.';
 
   const { projects = [], totalReports = 0 } = data;
 
@@ -164,7 +164,7 @@ async function generateExcel(data, filters = {}) {
 
   // Row 1 — company banner (navy + gold text)
   wsOv.mergeCells('A1:F1');
-  xlFill(wsOv, 'A', 1, { bg: XL.hdrBg, fg: XL.hdrGold, val: 'AGILE PRIME GENERAL CONTRACTING L.L.C.', bold: true, sz: 14, align: 'center' });
+  xlFill(wsOv, 'A', 1, { bg: XL.hdrBg, fg: XL.hdrGold, val: 'ReportoGENERAL CONTRACTING L.L.C.', bold: true, sz: 14, align: 'center' });
   wsOv.getRow(1).height = 38;
 
   // Row 2 — report title
@@ -264,7 +264,7 @@ async function generateExcel(data, filters = {}) {
 
   // Banner
   wsTB.mergeCells(`A1:${lastColLetter}1`);
-  xlFill(wsTB, 'A', 1, { bg: XL.hdrBg, fg: XL.hdrGold, val: 'AGILE PRIME GENERAL CONTRACTING L.L.C.', bold: true, sz: 14, align: 'center' });
+  xlFill(wsTB, 'A', 1, { bg: XL.hdrBg, fg: XL.hdrGold, val: 'ReportoGENERAL CONTRACTING L.L.C.', bold: true, sz: 14, align: 'center' });
   wsTB.getRow(1).height = 38;
 
   wsTB.mergeCells(`A2:${lastColLetter}2`);
@@ -383,7 +383,7 @@ async function generateExcel(data, filters = {}) {
 
     // Banner
     wsP.mergeCells(`A1:${pLastCol}1`);
-    xlFill(wsP, 'A', 1, { bg: XL.hdrBg, fg: XL.hdrGold, val: 'AGILE PRIME GENERAL CONTRACTING L.L.C.', bold: true, sz: 14, align: 'center' });
+    xlFill(wsP, 'A', 1, { bg: XL.hdrBg, fg: XL.hdrGold, val: 'ReportoGENERAL CONTRACTING L.L.C.', bold: true, sz: 14, align: 'center' });
     wsP.getRow(1).height = 38;
 
     wsP.mergeCells(`A2:${pLastCol}2`);
@@ -477,7 +477,7 @@ async function generatePDF(data, filters = {}) {
       bufferPages: true,
       info: {
         Title:   'Manpower Breakdown Report',
-        Author:  'Agile Prime — SitePulse',
+        Author:  'Reporto— SitePulse',
         Subject: 'Trade-Level Manpower Breakdown',
         Creator: 'SitePulse v15',
       },
@@ -584,7 +584,7 @@ async function generatePDF(data, filters = {}) {
     // Footer
     doc.rect(LM, H - 60, CW, 1).fill(goldD);
     doc.fontSize(8).fillColor(goldD).font('Helvetica')
-      .text('SitePulse  ·  Agile Prime General Contracting L.L.C.  ·  Confidential', LM, H - 46, { align: 'center', width: CW });
+      .text('SitePulse  ·  ReportoGeneral Contracting L.L.C.  ·  Confidential', LM, H - 46, { align: 'center', width: CW });
 
     // ── Overview Table Page ──────────────────────────────────────────────
     doc.addPage();
@@ -773,7 +773,7 @@ async function generatePDF(data, filters = {}) {
       // Footer
       doc.rect(LM, H - 32, CW, 1).fill(goldD);
       doc.fontSize(7).fillColor(goldD).font('Helvetica')
-        .text('SitePulse  ·  Agile Prime General Contracting L.L.C.  ·  Confidential', LM, H - 22, { align: 'center', width: CW });
+        .text('SitePulse  ·  ReportoGeneral Contracting L.L.C.  ·  Confidential', LM, H - 22, { align: 'center', width: CW });
     });
 
     // Add page numbers

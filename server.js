@@ -49,7 +49,7 @@ async function start() {
   // 3. Start the HTTP server
   const server = app.listen(PORT, () => {
     const env = process.env.NODE_ENV || 'development';
-    console.log(`\n🚀  AGILE PRIME DAILY REPORT`);
+    console.log(`\n🚀  Reporto`);
     console.log(`    Environment : ${env}`);
     console.log(`    URL         : http://localhost:${PORT}`);
     console.log(`    Report Form : http://localhost:${PORT}/reports/new`);

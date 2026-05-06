@@ -1,7 +1,7 @@
 {
   "name": "AGILE-construction-ops",
   "version": "1.0.0",
-  "description": "AGILE PRIME DAILY REPORT — Construction Daily Reporting & Operations Platform for Agile Prime General Contracting L.L.C.",
+  "description": "Reporto — Construction Daily Reporting & Operations Platform for ReportoGeneral Contracting L.L.C.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

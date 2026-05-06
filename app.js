@@ -88,8 +88,8 @@ app.use(loadUser); // Attach session user to res.locals for all templates
 
 // ── Global template locals ────────────────────────────────────────────────────
 app.use((req, res, next) => {
-  res.locals.appName     = process.env.APP_NAME     || 'AGILE PRIME DAILY REPORT';
-  res.locals.companyName = process.env.COMPANY_NAME || 'Agile Prime General Contracting L.L.C.';
+  res.locals.appName     = process.env.APP_NAME     || 'Reporto';
+  res.locals.companyName = process.env.COMPANY_NAME || 'ReportoGeneral Contracting L.L.C.';
   next();
 });
 
