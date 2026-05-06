@@ -9,7 +9,7 @@ and executive dashboards — built for the UAE construction industry.**
 
 ---
 
-Developed by **[Kerlos Alfy](https://kodeaa.com)** · Founder, [Kodea Digital](https://kodeaa.com)
+Developed by **[Kerlos Alfy](https://kodeaa.com)** · Founder, [Kodea](https://kodeaa.com)
 
 </div>
 
@@ -312,8 +312,7 @@ Engineers can be excluded from the alert individually (e.g. during leave) via th
 
 ## About
 
-**Reporto** was designed and developed by **Kerlos Alfy**, founder of [Kodea Digital Creative Studio](https://kodeaa.com) — a Dubai-based digital studio specialising in full-stack web development, UI/UX design, and custom software for the MENA construction and contracting sector.
-
+**Reporto** was designed and developed by **Kerlos Alfy**, founder of [Kodea](https://kodeaa.com) — a Dubai-based digital company specialising in full-stack web development, UI/UX design, and custom software for the MENA construction and contracting sector.
 | | |
 |---|---|
 | Developer | Kerlos Alfy |
