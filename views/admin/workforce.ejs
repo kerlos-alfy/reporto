@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= (typeof adminUser !== 'undefined' && adminUser && adminUser.theme) ? adminUser.theme : 'navy' %>">
+<head>
+  <!-- Theme: apply before render to prevent flash -->
+  <script>
+    (function(){var t=localStorage.getItem('ag_theme');if(t&&['navy','cyan','amber'].includes(t)){document.documentElement.setAttribute('data-theme',t);if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}})();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/logo.png">
+<link rel="apple-touch-icon" href="/assets/images/logo.png">
+  <title>Workforce Log — Agile Prime</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base: {
+              950: 'var(--surface-950)',
+              900: 'var(--surface-900)',
+              850: 'var(--surface-850)',
+              800: 'var(--surface-800)',
+              700: 'var(--surface-700)',
+              600: 'var(--surface-700)',
+            },
+            gold: {
+              DEFAULT: 'var(--accent)',
+              light: 'var(--accent-light)',
+              dim:   'var(--accent-dim)',
+            },
+            ok:   '#3dd68c',
+            warn: '#f0a030',
+            bad:  '#f05555',
+            info: '#50b0f0',
+          },
+          fontFamily: {
+            sans: ['DM Sans', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <link rel="stylesheet" href="/css/app.css">
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+
+    body {
+      background: #080a10;
+      color: #c8cdd6;
+      font-family: 'DM Sans', system-ui, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      min-height: 100vh;
+    }
+
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+
+    /* ── Filter inputs ── */
+    .wf-input {
+      width: 100%;
+      background: #0d1528;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 9px 36px 9px 13px;
+      font-size: 13px;
+      color: #e0e4ea;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .wf-input:hover { border-color: rgba(201,168,76,0.2); background: #0f1a30; }
+    .wf-input:focus { border-color: rgba(201,168,76,0.5); background: #0f1a30; box-shadow: 0 0 0 3px rgba(201,168,76,0.07); }
+    .wf-input option { background: #0d1528; color: #e2e8f0; }
+    .wf-input option:checked { background: rgba(201,168,76,0.2); color: #e2c97e; }
+    select.wf-input {
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23c9a84c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    /* ── Spinner ── */
+    @keyframes wf-spin { to { transform: rotate(360deg); } }
+    .wf-spinner {
+      width: 32px; height: 32px;
+      border: 2px solid rgba(201,168,76,0.2);
+      border-top-color: #c9a84c;
+      border-radius: 50%;
+      animation: wf-spin 0.8s linear infinite;
+    }
+
+    /* ── Report Card ── */
+    .report-card {
+      background: rgba(255,255,255,0.025);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 18px;
+      padding: 20px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .report-card:hover { background: rgba(255,255,255,0.04); border-color: rgba(201,168,76,0.2); }
+
+    .card-meta-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .card-date     { font-size: 15px; font-weight: 700; color: #fff; white-space: nowrap; }
+    .card-project  { font-size: 12px; font-weight: 600; padding: 3px 11px; border-radius: 99px; background: rgba(201,168,76,0.1); color: rgba(201,168,76,0.9); border: 1px solid rgba(201,168,76,0.18); white-space: nowrap; }
+    .card-engineer { font-size: 12px; color: rgba(255,255,255,0.45); display: flex; align-items: center; gap: 5px; }
+    .card-shift-day   { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: rgba(201,168,76,0.1); color: #c9a84c; border: 1px solid rgba(201,168,76,0.2); }
+    .card-shift-night { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: rgba(167,139,250,0.1); color: #a78bfa; border: 1px solid rgba(167,139,250,0.2); }
+    .card-shift-time  { font-size: 11px; color: rgba(255,255,255,0.25); font-family: 'JetBrains Mono', monospace; }
+    .card-report-link { margin-left: auto; font-size: 11px; color: #50b0f0; text-decoration: none; font-weight: 600; white-space: nowrap; opacity: 0.7; transition: opacity 0.2s; }
+    .card-report-link:hover { opacity: 1; }
+
+    .card-divider { height: 1px; background: rgba(255,255,255,0.06); margin-bottom: 14px; }
+
+    /* ── Sources grid ── */
+    .sources-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; }
+    @media(max-width:600px) { .sources-grid { grid-template-columns: 1fr; } }
+
+    .source-block         { border-radius: 12px; padding: 12px 14px; }
+    .source-block.inhouse { background: rgba(61,214,140,0.06);  border: 1px solid rgba(61,214,140,0.12); }
+    .source-block.supplier{ background: rgba(80,176,240,0.06);  border: 1px solid rgba(80,176,240,0.12); }
+    .source-block.subcon  { background: rgba(240,160,48,0.06);  border: 1px solid rgba(240,160,48,0.12); }
+    .source-block.empty   { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); }
+
+    .sb-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .sb-label  { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; }
+    .sb-label.inhouse { color: #3dd68c; } .sb-label.supplier { color: #50b0f0; }
+    .sb-label.subcon  { color: #f0a030; } .sb-label.empty    { color: rgba(255,255,255,0.15); }
+    .sb-total  { font-size: 20px; font-weight: 800; line-height: 1; }
+    .sb-total.inhouse { color: #3dd68c; } .sb-total.supplier { color: #50b0f0; }
+    .sb-total.subcon  { color: #f0a030; } .sb-total.empty    { color: rgba(255,255,255,0.1); }
+
+    .trade-item     { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+    .trade-bar-wrap { flex: 1; height: 4px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+    .trade-bar      { height: 100%; border-radius: 99px; transition: width 0.6s ease; }
+    .trade-name     { font-size: 10px; color: rgba(255,255,255,0.35); white-space: nowrap; min-width: 72px; }
+    .trade-count    { font-size: 11px; font-weight: 700; min-width: 20px; text-align: right; }
+    .company-tag    { font-size: 10px; color: rgba(255,255,255,0.3); background: rgba(255,255,255,0.04); border-radius: 6px; padding: 2px 7px; display: inline-block; margin-bottom: 6px; }
+
+    .card-bottom { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.05); }
+
+    /* ── Stat badges ── */
+    .stat-badge { display: flex; flex-direction: column; align-items: center; gap: 1px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 10px 16px; }
+    .stat-num   { font-size: 22px; font-weight: 800; line-height: 1; }
+    .stat-lbl   { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: rgba(255,255,255,0.25); }
+
+    @keyframes fadeIn { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
+  </style>
+  <script src="/js/theme.js"></script>
+</head>
+
+<body>
+  <%- include('../partials/navbar') %>
+
+  <main class="pt-20 pb-8 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-5xl mx-auto pt-4 pb-16">
+
+    <!-- ── PAGE HEADER ── -->
+    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-8">
+      <div>
+        <h1 style="font-size:28px;font-weight:900;color:#fff;letter-spacing:-0.03em;line-height:1.1">Workforce Log</h1>
+        <p style="font-size:13px;color:rgba(255,255,255,0.3);margin-top:6px">Daily manpower per site — In-House, Suppliers &amp; Subcontractors</p>
+      </div>
+      <div id="summaryBadge" style="display:none" class="flex-shrink-0 flex items-center gap-3">
+        <div class="stat-badge">
+          <div class="stat-num" style="color:#c9a84c" id="badgeTotal">—</div>
+          <div class="stat-lbl">Workers</div>
+        </div>
+        <div class="stat-badge">
+          <div class="stat-num" style="color:#fff" id="badgeReports">—</div>
+          <div class="stat-lbl">Reports</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FILTER BAR ── -->
+    <div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.07);border-radius:18px;padding:18px;margin-bottom:24px">
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.25)">From</label>
+          <input type="date" id="fFrom" class="wf-input" />
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.25)">To</label>
+          <input type="date" id="fTo" class="wf-input" />
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.25)">Project</label>
+          <select id="fProject" class="wf-input" style="background-color:#0d1528;color:#e2e8f0">
+            <option value="">All Projects</option>
+            <% if (typeof filterOptions !== 'undefined' && filterOptions.projects) { %>
+              <% filterOptions.projects.forEach(function(p){ %>
+                <option value="<%= p.id %>"><%= p.name %></option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.25)">Engineer</label>
+          <select id="fEngineer" class="wf-input" style="background-color:#0d1528;color:#e2e8f0">
+            <option value="">All Engineers</option>
+            <% if (typeof filterOptions !== 'undefined' && filterOptions.engineers) { %>
+              <% filterOptions.engineers.forEach(function(e){ %>
+                <option value="<%= e.id %>"><%= e.name %></option>
+              <% }); %>
+            <% } %>
+          </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.25)">Source</label>
+          <select id="fSource" class="wf-input" style="background-color:#0d1528;color:#e2e8f0">
+            <option value="">All Sources</option>
+            <option value="In-House">In-House</option>
+            <option value="Supplier">Supplier</option>
+            <option value="Subcontractor">Subcontractor</option>
+          </select>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-size:10px;font-weight:700;letter-spacing:0.08em;color:transparent">x</label>
+          <div style="display:flex;gap:8px">
+            <button id="btnApply" style="flex:1;background:#c9a84c;color:#0c1017;font-size:12px;font-weight:800;border-radius:10px;padding:9px 10px;border:none;cursor:pointer;transition:background 0.2s;letter-spacing:0.02em" onmouseover="this.style.background='#e2c97e'" onmouseout="this.style.background='#c9a84c'">Apply</button>
+            <button id="btnClear" style="flex:1;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.4);font-size:12px;font-weight:700;border-radius:10px;padding:9px 10px;border:1px solid rgba(255,255,255,0.08);cursor:pointer;transition:background 0.2s" onmouseover="this.style.background='rgba(255,255,255,0.09)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">Clear</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── LOADING ── -->
+    <div id="wfLoading" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:80px 0;gap:12px">
+      <div class="wf-spinner"></div>
+      <span style="font-size:13px;color:rgba(255,255,255,0.25)">Loading workforce data…</span>
+    </div>
+
+    <!-- ── EMPTY ── -->
+    <div id="wfEmpty" style="display:none;text-align:center;padding:80px 0">
+      <div style="font-size:40px;opacity:0.15;margin-bottom:12px">👷</div>
+      <p style="font-size:14px;color:rgba(255,255,255,0.2);font-weight:500">No reports found for the selected filters</p>
+    </div>
+
+    <!-- ── CARDS CONTAINER ── -->
+    <div id="wfCards" style="display:none">
+      <div id="cardsList" style="display:flex;flex-direction:column;gap:12px"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding:0 2px">
+        <span id="wfCount" style="font-size:12px;color:rgba(255,255,255,0.2)"></span>
+        <div id="wfPagination" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+      </div>
+    </div>
+
+  </div>
+  </main>
+
+  <script>
+  (function(){
+    var TL = { steelFixer:'Steel Fixer', steelFixerForemen:'SF Foreman', carpenter:'Carpenter', carpenterForemen:'Carpenter FM', helper:'Helper', scaffolding:'Scaffolding', engineersNo:'Engineers' };
+    var TC = { steelFixer:'#f05555', steelFixerForemen:'#f08055', carpenter:'#50b0f0', carpenterForemen:'#70c0f8', helper:'#3dd68c', scaffolding:'#a78bfa', engineersNo:'#c9a84c' };
+
+    var allRows = [], PAGE = 10, page = 1;
+
+    function esc(v){ return String(v ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function fmt12(t){ if(!t) return ''; var h=parseInt(t,10),m=t.split(':')[1]||'00'; return (h%12||12)+':'+m+' '+(h>=12?'PM':'AM'); }
+    function n(v){ return (Number(v) || 0).toLocaleString(); }
+    function fd(d){ if(!d) return '—'; return new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}); }
+
+    function makeTrades(mp){
+      if(!mp) return '';
+      var entries = Object.entries(TL).map(function([k,label]){ return {k,label,v:Number(mp[k])||0}; }).filter(function(x){ return x.v > 0; });
+      if(!entries.length) return '';
+      var max = Math.max(...entries.map(function(x){ return x.v; }));
+      return entries.map(function(x){
+        var pct = Math.round((x.v / max) * 100);
+        return '<div class="trade-item">'
+          + '<span class="trade-name">' + x.label + '</span>'
+          + '<div class="trade-bar-wrap"><div class="trade-bar" style="width:' + pct + '%;background:' + TC[x.k] + '"></div></div>'
+          + '<span class="trade-count" style="color:' + TC[x.k] + '">' + x.v + '</span>'
+          + '</div>';
+      }).join('');
+    }
+
+    function makeSourceBlock(sources, type, cls){
+      var list = sources.filter(function(s){ return s.type === type; });
+      if(!list.length){
+        var names = {'In-House':'In-House', 'Supplier':'Suppliers', 'Subcontractor':'Subcontractors'};
+        return '<div class="source-block empty">'
+          + '<div class="sb-header"><span class="sb-label empty">' + names[type] + '</span><span class="sb-total empty">0</span></div>'
+          + '<div style="font-size:11px;color:rgba(255,255,255,0.1)">No workers recorded</div>'
+          + '</div>';
+      }
+      var h = '';
+      list.forEach(function(s, i){
+        var tot = Number(s.totalManpower) || 0;
+        h += '<div class="source-block ' + cls + '"' + (i > 0 ? ' style="margin-top:8px"' : '') + '>';
+        h += '<div class="sb-header"><span class="sb-label ' + cls + '">' + esc(type) + '</span><span class="sb-total ' + cls + '">' + n(tot) + '</span></div>';
+        if(s.companyName) h += '<div class="company-tag">' + esc(s.companyName) + '</div>';
+        h += makeTrades(s.manpower);
+        h += '</div>';
+      });
+      return h;
+    }
+
+    function renderCards(rows, pg){
+      var list = document.getElementById('cardsList');
+      var sl = rows.slice((pg-1)*PAGE, pg*PAGE);
+      if(!sl.length){ list.innerHTML = ''; return; }
+
+      list.innerHTML = sl.map(function(r){
+        var shiftBadge = r.shiftType === 'Night'
+          ? '<span class="card-shift-night">🌙 Night</span>'
+          : '<span class="card-shift-day">☀️ Day</span>';
+        var timeBadge = r.startTime ? '<span class="card-shift-time">' + esc(fmt12(r.startTime)) + ' – ' + esc(fmt12(r.endTime)) + '</span>' : '';
+
+        return '<div class="report-card" style="animation:fadeIn 0.25s ease both">'
+          + '<div class="card-meta-row">'
+            + '<span class="card-date">' + fd(r.date) + '</span>'
+            + '<span class="card-project">' + esc(r.siteName) + '</span>'
+            + '<span class="card-engineer"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:0.4"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>' + esc(r.engineerName) + '</span>'
+            + shiftBadge + timeBadge
+            + '<a href="/admin/reports/' + esc(r.reportId) + '" class="card-report-link" target="_blank">↗ ' + esc(r.reportId) + '</a>'
+          + '</div>'
+          + '<div class="card-divider"></div>'
+          + '<div class="sources-grid">'
+            + makeSourceBlock(r.sources, 'In-House', 'inhouse')
+            + makeSourceBlock(r.sources, 'Supplier', 'supplier')
+            + makeSourceBlock(r.sources, 'Subcontractor', 'subcon')
+          + '</div>'
+          + '<div class="card-bottom">'
+            + '<div style="flex:1;font-size:11px;color:rgba(255,255,255,0.2)">Total workforce on site</div>'
+            + '<div style="display:flex;align-items:baseline;gap:6px">'
+              + '<span style="font-size:36px;font-weight:900;color:#c9a84c;line-height:1">' + n(r.totalManpower) + '</span>'
+              + '<span style="font-size:11px;color:rgba(201,168,76,0.4);font-weight:600">workers</span>'
+            + '</div>'
+          + '</div>'
+          + '</div>';
+      }).join('');
+    }
+
+    function renderPag(total, pg){
+      var pages = Math.ceil(total / PAGE);
+      var ce = document.getElementById('wfCount');
+      var el = document.getElementById('wfPagination');
+      if(ce) ce.textContent = 'Showing ' + ((pg-1)*PAGE+1) + '–' + Math.min(pg*PAGE, total) + ' of ' + total + ' reports';
+      if(!el) return;
+      if(pages <= 1){ el.innerHTML = ''; return; }
+      el.innerHTML = Array.from({length: pages}, function(_, i){
+        var p = i + 1, active = p === pg;
+        return '<button data-p="' + p + '" style="min-width:34px;height:34px;border-radius:9px;font-size:12px;font-weight:700;border:1px solid;cursor:pointer;font-family:\'DM Sans\',sans-serif;'
+          + (active ? 'background:#c9a84c;color:#0c1017;border-color:#c9a84c;' : 'background:rgba(255,255,255,0.04);color:rgba(255,255,255,0.35);border-color:rgba(255,255,255,0.07);')
+          + '">' + p + '</button>';
+      }).join('');
+      el.querySelectorAll('button').forEach(function(b){
+        b.addEventListener('click', function(){
+          page = parseInt(this.dataset.p);
+          renderCards(allRows, page);
+          renderPag(allRows.length, page);
+          window.scrollTo({top: 0, behavior: 'smooth'});
+        });
+      });
+    }
+
+    function show(id, vis){ var el = document.getElementById(id); if(el) el.style.display = vis; }
+
+    function buildParams(){
+      var p = new URLSearchParams();
+      var v;
+      v = document.getElementById('fFrom').value;     if(v) p.set('fromDate', v);
+      v = document.getElementById('fTo').value;       if(v) p.set('toDate', v);
+      v = document.getElementById('fProject').value;  if(v) p.set('project', v);
+      v = document.getElementById('fEngineer').value; if(v) p.set('engineer', v);
+      v = document.getElementById('fSource').value;   if(v) p.set('sourceType', v);
+      return p.toString();
+    }
+
+    async function load(){
+      show('wfLoading', 'flex'); show('wfCards', 'none'); show('wfEmpty', 'none');
+      document.getElementById('summaryBadge').style.display = 'none';
+
+      try {
+        var qs = buildParams();
+        var res = await fetch('/api/admin/workforce' + (qs ? '?' + qs : ''));
+        var data = await res.json();
+        if(!data.success) throw new Error(data.error || 'Failed to load');
+        allRows = (data.rows || []).sort(function(a, b){ return new Date(b.date) - new Date(a.date); });
+        page = 1;
+
+        var tot = allRows.reduce(function(s, r){ return s + (Number(r.totalManpower) || 0); }, 0);
+        document.getElementById('badgeTotal').textContent = tot.toLocaleString();
+        document.getElementById('badgeReports').textContent = allRows.length.toLocaleString();
+        if(allRows.length) document.getElementById('summaryBadge').style.display = 'flex';
+
+      } catch(err){
+        console.error('Workforce load error:', err);
+        allRows = [];
+      }
+
+      show('wfLoading', 'none');
+      if(!allRows.length){ show('wfEmpty', 'block'); }
+      else { show('wfCards', 'block'); renderCards(allRows, page); renderPag(allRows.length, page); }
+    }
+
+    document.getElementById('btnApply').addEventListener('click', load);
+    document.getElementById('btnClear').addEventListener('click', function(){
+      ['fFrom','fTo','fProject','fEngineer','fSource'].forEach(function(id){
+        var el = document.getElementById(id); if(el) el.value = '';
+      });
+      load();
+    });
+
+    load();
+  })();
+  </script>
+
+
+</body>
+</html>

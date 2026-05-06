@@ -1,0 +1,2163 @@
+<%
+  // ── helpers ──────────────────────────────────────────────────
+  function fmt(d) {
+    if (!d) return '—';
+    const dt = new Date(d);
+    return dt.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  }
+
+  function dur(mins) {
+    if (!mins && mins !== 0) return null;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    if (h && m) return h + 'h ' + m + 'm';
+    if (h) return h + 'h';
+    return m + 'm';
+  }
+
+  function pColor(p) {
+    return p >= 80 ? '#22c55e' : p >= 45 ? '#f59e0b' : '#ef4444';
+  }
+
+  function pSoft(p) {
+    return p >= 80 ? 'rgba(34,197,94,0.14)' : p >= 45 ? 'rgba(245,158,11,0.14)' : 'rgba(239,68,68,0.14)';
+  }
+
+  function pBorder(p) {
+    return p >= 80 ? 'rgba(34,197,94,0.28)' : p >= 45 ? 'rgba(245,158,11,0.28)' : 'rgba(239,68,68,0.28)';
+  }
+
+  function pLabel(p) {
+    return p >= 80 ? 'On Track' : p >= 45 ? 'In Progress' : 'Needs Attention';
+  }
+
+  // print-safe solid colors
+  function pColorPrint(p) {
+    return p >= 80 ? '#16a34a' : p >= 45 ? '#d97706' : '#dc2626';
+  }
+
+  function initials(name) {
+    return (name || '?')
+      .split(' ')
+      .map(w => w[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+  function safePct(val) {
+    const n = Number(val);
+    if (isNaN(n)) return 0;
+    if (n < 0) return 0;
+    if (n > 100) return 100;
+    return n;
+  }
+
+  const avgProgress = Math.round(report.averageProgress || 0);
+  const allItems = report.items || [];
+  const itemsCount = report.itemsCount || allItems.length || 0;
+
+  // ── Compute real totalManpower from sources[] (new schema), fallback to stored value ──
+  const reportTotalManpower = (function() {
+    let total = 0;
+    allItems.forEach(function(item) {
+      if (item.sources && item.sources.length > 0) {
+        item.sources.forEach(function(s) { total += (Number(s.totalManpower) || 0); });
+      } else {
+        total += (Number(item.totalManpower) || 0) + (Number(item.externalTotalManpower) || 0);
+      }
+    });
+    return total || (Number(report.totalManpower) || 0);
+  })();
+
+  // Support both new sources[] schema and legacy laborSourceType field
+  function itemHasSourceType(item, type) {
+    if (item.sources && item.sources.length > 0) {
+      return item.sources.some(s => s.type === type);
+    }
+    if (type === 'In-House') return !item.laborSourceType || item.laborSourceType === 'In-House';
+    return item.laborSourceType === type;
+  }
+  const inHouse  = allItems.filter(i => itemHasSourceType(i, 'In-House')).length;
+  const supplier = allItems.filter(i => itemHasSourceType(i, 'Supplier')).length;
+  const subcon   = allItems.filter(i => itemHasSourceType(i, 'Subcontractor')).length;
+
+  const reportStatus = pLabel(avgProgress);
+  const reportStatusColor = pColor(avgProgress);
+  const reportStatusBg = pSoft(avgProgress);
+  const reportStatusBorder = pBorder(avgProgress);
+  const reportStatusPrint = pColorPrint(avgProgress);
+%>
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= (typeof adminUser !== 'undefined' && adminUser && adminUser.theme) ? adminUser.theme : 'navy' %>">
+<head>
+  <!-- Theme: apply before render to prevent flash -->
+  <script>
+    (function(){var t=localStorage.getItem('ag_theme');if(t&&['navy','cyan','amber'].includes(t)){document.documentElement.setAttribute('data-theme',t);if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}})();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/logo.png">
+<link rel="apple-touch-icon" href="/assets/images/logo.png">
+  <title><%= report.reportId %> — Report Detail</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              950: 'var(--surface-950)',
+              900: 'var(--surface-900)',
+              850: 'var(--surface-850)',
+              800: 'var(--surface-800)',
+              750: 'var(--surface-800)',
+              700: 'var(--surface-700)',
+              600: 'var(--surface-700)',
+              500: 'var(--surface-700)',
+              gold:         'var(--accent)',
+              'gold-light': 'var(--accent-light)',
+              'gold-dim':   'var(--accent-dim)',
+              'gold-glow':  'var(--accent-a08)',
+              'gold-border':'var(--accent-a15)',
+            }
+          },
+          fontFamily: {
+            sans: ['DM Sans', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --bg: #06080f;
+    --bg-2: #0a0f1a;
+    --card: rgba(16, 23, 38, 0.92);
+    --card-2: rgba(255,255,255,0.03);
+    --border: rgba(255,255,255,0.08);
+    --border-strong: rgba(255,255,255,0.14);
+    --text: #f8fafc;
+    --muted: rgba(255,255,255,0.64);
+    --muted-2: rgba(255,255,255,0.42);
+    --muted-3: rgba(255,255,255,0.22);
+    --gold: #c9a84c;
+    --gold-soft: rgba(201,168,76,0.14);
+    --gold-border: rgba(201,168,76,0.22);
+    --nav-offset: 108px;
+    --radius-xl: 28px;
+    --radius-lg: 22px;
+    --radius-md: 18px;
+    --radius-sm: 14px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    margin: 0;
+    color: var(--text);
+    font-family: 'DM Sans', Arial, sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(201,168,76,0.08), transparent 28%),
+      radial-gradient(circle at top right, rgba(59,130,246,0.05), transparent 24%),
+      linear-gradient(180deg, #06080f 0%, #0a0f1a 100%);
+  }
+
+  .page {
+    max-width: 1260px;
+    margin: 0 auto;
+    padding: var(--nav-offset) 20px 56px;
+  }
+
+  .top-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .top-actions-left,
+  .top-actions-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .ghost-btn,
+  .print-btn,
+  .chip-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 42px;
+    padding: 0 14px;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    transition: 0.22s ease;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .ghost-btn {
+    background: rgba(255,255,255,0.03);
+    color: rgba(255,255,255,0.72);
+  }
+
+  .ghost-btn:hover {
+    color: #fff;
+    border-color: rgba(255,255,255,0.16);
+    background: rgba(255,255,255,0.06);
+  }
+
+  .chip-btn {
+    background: var(--gold-soft);
+    color: var(--gold);
+    border-color: var(--gold-border);
+    font-family: 'JetBrains Mono', 'Courier New', monospace;
+    text-transform: none;
+    letter-spacing: 0.03em;
+  }
+
+  .print-btn {
+    color: #0b1120;
+    background: linear-gradient(180deg, #e5c46b 0%, #c9a84c 100%);
+    border-color: rgba(201,168,76,0.5);
+    box-shadow: 0 10px 24px rgba(201,168,76,0.22);
+  }
+
+  .print-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 14px 28px rgba(201,168,76,0.28);
+  }
+
+  .hero {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius-xl);
+    background:
+      linear-gradient(135deg, rgba(201,168,76,0.13), rgba(201,168,76,0.03) 28%, rgba(255,255,255,0.02) 100%),
+      rgba(10,15,26,0.94);
+    border: 1px solid rgba(255,255,255,0.08);
+    box-shadow: 0 24px 70px rgba(0,0,0,0.28);
+    padding: 28px;
+    margin-bottom: 20px;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(201,168,76,0.12), transparent 32%),
+      linear-gradient(90deg, transparent, rgba(255,255,255,0.015), transparent);
+  }
+
+  .hero-grid {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(310px, 0.9fr);
+    gap: 20px;
+    align-items: stretch;
+  }
+
+  .hero-left {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+  }
+
+  .hero-topline {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .section-chip,
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 34px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  .section-chip {
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.74);
+  }
+
+  .status-badge { backdrop-filter: blur(8px); }
+
+  .hero-title {
+    margin: 0;
+    font-size: clamp(28px, 4vw, 42px);
+    line-height: 1.04;
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    color: #fff;
+    word-break: break-word;
+  }
+
+  .hero-subtitle {
+    margin: 0;
+    max-width: 760px;
+    font-size: 14px;
+    line-height: 1.8;
+    color: rgba(255,255,255,0.62);
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .meta-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.84);
+    font-size: 12px;
+    font-weight: 700;
+  }
+
+  .meta-pill .label { color: rgba(255,255,255,0.42); font-weight: 600; }
+
+  .hero-side {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .hero-engineer {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 22px;
+    padding: 18px;
+  }
+
+  .eyebrow {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(201,168,76,0.66);
+    margin-bottom: 8px;
+  }
+
+  .eng-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .eng-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 18px;
+    background: linear-gradient(180deg, rgba(201,168,76,0.18), rgba(201,168,76,0.08));
+    border: 1px solid rgba(201,168,76,0.22);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--gold);
+    flex-shrink: 0;
+  }
+
+  .eng-name {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.12;
+    color: #fff;
+  }
+
+  .eng-role { margin-top: 5px; font-size: 12px; color: rgba(255,255,255,0.44); }
+
+  .mini-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .mini-stat {
+    min-height: 106px;
+    border-radius: 18px;
+    padding: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .mini-label {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.34);
+  }
+
+  .mini-value {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: #fff;
+  }
+
+  .mini-hint { font-size: 11px; color: rgba(255,255,255,0.42); line-height: 1.5; }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  .stat-card {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    background: rgba(16,23,38,0.92);
+    border: 1px solid rgba(255,255,255,0.08);
+    padding: 18px;
+    box-shadow: 0 14px 36px rgba(0,0,0,0.18);
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto auto 0;
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(201,168,76,0.34), transparent);
+  }
+
+  .stat-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.34);
+  }
+
+  .stat-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 12px;
+    background: rgba(201,168,76,0.11);
+    border: 1px solid rgba(201,168,76,0.18);
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .stat-value {
+    font-size: clamp(28px, 3vw, 34px);
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.05em;
+    color: #fff;
+    margin-bottom: 8px;
+    word-break: break-word;
+  }
+
+  .stat-foot { font-size: 12px; line-height: 1.7; color: rgba(255,255,255,0.46); }
+
+  .layout-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.65fr);
+    gap: 20px;
+    align-items: start;
+  }
+
+  .card {
+    background: rgba(16,23,38,0.92);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 22px;
+    padding: 22px;
+    box-shadow: 0 14px 42px rgba(0,0,0,0.18);
+    margin-bottom: 18px;
+  }
+
+  .card:last-child { margin-bottom: 0; }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+
+  .card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.4;
+  }
+
+  .card-title small {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(201,168,76,0.68);
+  }
+
+  .subtle-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.64);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .alert-box {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    border-radius: 16px;
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.16);
+    color: rgba(255,221,221,0.95);
+    font-size: 13px;
+    line-height: 1.75;
+    margin-bottom: 12px;
+  }
+
+  .alert-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    background: rgba(239,68,68,0.12);
+    border: 1px solid rgba(239,68,68,0.18);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .note-box {
+    padding: 18px;
+    border-radius: 16px;
+    background: linear-gradient(180deg, rgba(201,168,76,0.06), rgba(255,255,255,0.02));
+    border: 1px solid rgba(201,168,76,0.14);
+    color: rgba(255,255,255,0.74);
+    font-size: 13px;
+    line-height: 1.9;
+    overflow-wrap: break-word;
+  }
+
+  .work-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .work-item {
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.015));
+    border: 1px solid rgba(255,255,255,0.07);
+    padding: 18px;
+    transition: 0.2s ease;
+  }
+
+  .work-item:hover {
+    border-color: rgba(255,255,255,0.12);
+    transform: translateY(-1px);
+  }
+
+  .wi-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .wi-left {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .wi-num {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.52);
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .wi-content { min-width: 0; flex: 1; }
+
+  .wi-name {
+    margin: 0;
+    font-size: 18px;
+    line-height: 1.25;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
+    word-break: break-word;
+  }
+
+  .wi-sub {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: rgba(255,255,255,0.44);
+  }
+
+  .wi-sub .dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.22);
+    flex-shrink: 0;
+  }
+
+  .wi-progress-box { flex-shrink: 0; min-width: 130px; text-align: right; }
+
+  .wi-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    border: 1px solid;
+  }
+
+  .wi-pct {
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.06em;
+  }
+
+  .prog-wrap { margin-bottom: 14px; }
+
+  .prog-track {
+    position: relative;
+    width: 100%;
+    height: 10px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    overflow: hidden;
+  }
+
+  .prog-fill {
+    position: absolute;
+    inset: 0 auto 0 0;
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.45s ease;
+  }
+
+  .prog-knob {
+    position: absolute;
+    top: 50%;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    background: #fff;
+    box-shadow: 0 0 0 4px rgba(255,255,255,0.10);
+    border: 2px solid rgba(0,0,0,0.18);
+    transition: left 0.45s ease;
+  }
+
+  .tags {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 0 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.68);
+  }
+
+  .tag--supplier { background: rgba(59,130,246,0.12); color: #93c5fd; border-color: rgba(59,130,246,0.22); }
+  .tag--sub      { background: rgba(168,85,247,0.12); color: #d8b4fe; border-color: rgba(168,85,247,0.22); }
+  .tag--agile    { background: rgba(201,168,76,0.12); color: var(--gold); border-color: rgba(201,168,76,0.20); }
+
+  .mp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 10px;
+    margin-top: 10px;
+  }
+
+  .mp-item {
+    min-height: 76px;
+    border-radius: 14px;
+    padding: 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  .mp-val {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: #fff;
+  }
+
+  .mp-key {
+    margin-top: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.30);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+
+  .inline-note,
+  .scope-note {
+    margin-top: 12px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    font-size: 12px;
+    line-height: 1.75;
+    overflow-wrap: break-word;
+  }
+
+  .inline-note {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.62);
+  }
+
+  .scope-note {
+    background: rgba(59,130,246,0.08);
+    border: 1px solid rgba(59,130,246,0.16);
+    color: rgba(186,230,253,0.92);
+  }
+
+  .side-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    position: sticky;
+    top: calc(var(--nav-offset) - 12px);
+  }
+
+  .breakdown-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .break-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .break-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
+
+  .break-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .break-name { font-size: 13px; font-weight: 700; color: rgba(255,255,255,0.82); line-height: 1.5; }
+  .break-val  { font-size: 13px; font-weight: 800; color: #fff; white-space: nowrap; flex-shrink: 0; }
+
+  .summary-lines { display: flex; flex-direction: column; gap: 12px; }
+
+  .sum-line {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .sum-line:last-child { padding-bottom: 0; border-bottom: 0; }
+
+  .sum-k { font-size: 12px; color: rgba(255,255,255,0.46); line-height: 1.5; }
+
+  .sum-v {
+    text-align: right;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1.6;
+    word-break: break-word;
+    max-width: 60%;
+  }
+
+  .footer-note {
+    text-align: center;
+    padding-top: 28px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.16);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1.8;
+  }
+
+  /* ─── RESPONSIVE ──────────────────────────────── */
+  @media (max-width: 1100px) {
+    .hero-grid,
+    .layout-grid { grid-template-columns: 1fr; }
+    .side-stack { position: static; top: auto; }
+    .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+
+  @media (max-width: 768px) {
+    :root { --nav-offset: 96px; }
+    .page { padding: var(--nav-offset) 14px 40px; }
+    .hero, .card { padding: 18px; border-radius: 18px; }
+    .hero-title { font-size: 28px; }
+    .hero-subtitle { font-size: 13px; line-height: 1.8; }
+    .stats-grid { grid-template-columns: 1fr; }
+    .mini-grid { grid-template-columns: 1fr; }
+    .wi-top { flex-direction: column; }
+    .wi-progress-box { width: 100%; min-width: 0; text-align: left; }
+    .top-actions-left, .top-actions-right { width: 100%; }
+    .top-actions-right { justify-content: flex-start; }
+    .hero-meta { flex-direction: column; }
+    .meta-pill { width: 100%; justify-content: flex-start; }
+    .sum-v { max-width: 58%; }
+  }
+
+  @media (max-width: 520px) {
+    :root { --nav-offset: 88px; }
+    .page { padding: var(--nav-offset) 12px 34px; }
+    .hero { padding: 16px; border-radius: 16px; }
+    .card { padding: 16px; border-radius: 16px; }
+    .top-actions { gap: 10px; }
+    .ghost-btn, .chip-btn, .print-btn { width: 100%; }
+    .hero-topline { gap: 8px; }
+    .section-chip, .status-badge { width: 100%; justify-content: center; }
+    .hero-title { font-size: 24px; }
+    .eng-row { align-items: flex-start; }
+    .eng-avatar { width: 48px; height: 48px; border-radius: 14px; font-size: 15px; }
+    .eng-name { font-size: 17px; }
+    .mini-grid { grid-template-columns: 1fr; }
+    .stat-value { font-size: 28px; }
+    .wi-name { font-size: 16px; }
+    .wi-pct { font-size: 26px; }
+    .break-item, .sum-line { flex-direction: column; align-items: flex-start; }
+    .break-val, .sum-v { text-align: left; max-width: 100%; white-space: normal; }
+    .mp-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .footer-note { font-size: 9px; }
+  }
+
+  @media (max-width: 380px) {
+    .mp-grid { grid-template-columns: 1fr; }
+    .wi-left { gap: 10px; }
+    .wi-num { width: 34px; height: 34px; }
+  }
+
+  /* ═══════════════════════════════════════════════════════════
+     PRINT STYLES
+     ═══════════════════════════════════════════════════════════ */
+
+  @page {
+    size: A4;
+    margin: 16mm 14mm 18mm;
+  }
+
+  @media print {
+
+    html, body {
+      background: #ffffff !important;
+      color: #1a1a1a !important;
+      font-size: 10pt;
+      font-family: 'DM Sans', Arial, sans-serif !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .no-print,
+    .top-actions,
+    nav, .navbar, .sidebar,
+    .print-btn, .ghost-btn, .chip-btn,
+    button, .topbar, .header-actions,
+    body > nav, body > header,
+    .nav-wrapper, .navbar-wrapper,
+    .prog-knob {
+      display: none !important;
+    }
+
+    .page {
+      max-width: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    * {
+      box-shadow: none !important;
+      text-shadow: none !important;
+      backdrop-filter: none !important;
+      filter: none !important;
+      transition: none !important;
+      animation: none !important;
+    }
+
+    .page::before {
+      content: '';
+      display: block !important;
+      width: 100% !important;
+      height: 6px !important;
+      background: linear-gradient(90deg, #c9a84c, #e2c97e, #c9a84c) !important;
+      border-radius: 3px !important;
+      margin-bottom: 14px !important;
+    }
+
+    .hero {
+      background: #fff !important;
+      border: none !important;
+      border-bottom: 2px solid #e8e0cc !important;
+      border-radius: 0 !important;
+      padding: 0 0 14px 0 !important;
+      margin-bottom: 14px !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .hero::before { display: none !important; }
+
+    .hero-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 200px !important;
+      gap: 16px !important;
+      align-items: start !important;
+    }
+
+    .hero-left, .hero-side {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 8px !important;
+    }
+
+    .hero-topline {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      margin-bottom: 2px !important;
+    }
+
+    .section-chip {
+      background: #f5f0e6 !important;
+      color: #8a6a1e !important;
+      border: 1px solid #d4c07a !important;
+      padding: 2px 10px !important;
+      font-size: 7.5pt !important;
+      min-height: auto !important;
+      border-radius: 999px !important;
+    }
+
+    .status-badge { display: none !important; }
+
+    .hero-title {
+      font-size: 22pt !important;
+      font-weight: 800 !important;
+      line-height: 1.1 !important;
+      color: #111 !important;
+      letter-spacing: -0.04em !important;
+      margin: 0 !important;
+    }
+
+    .hero-subtitle {
+      font-size: 8.5pt !important;
+      line-height: 1.5 !important;
+      color: #777 !important;
+      margin: 0 !important;
+    }
+
+    .hero-meta {
+      display: flex !important;
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+      margin-top: 4px !important;
+    }
+
+    .meta-pill {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 5px !important;
+      min-height: auto !important;
+      padding: 4px 10px !important;
+      border-radius: 8px !important;
+      background: #f7f7f7 !important;
+      border: 1px solid #e0e0e0 !important;
+      font-size: 8.5pt !important;
+      color: #333 !important;
+    }
+
+    .meta-pill .label { color: #999 !important; font-weight: 600 !important; }
+    .meta-pill svg { display: none !important; }
+
+    .hero-engineer {
+      background: #f5f0e6 !important;
+      border: 1px solid #d4c07a !important;
+      border-radius: 10px !important;
+      padding: 10px 12px !important;
+    }
+
+    .eyebrow { font-size: 7pt !important; color: #a07c2a !important; letter-spacing: 0.12em !important; margin-bottom: 6px !important; }
+
+    .eng-avatar {
+      width: 34px !important;
+      height: 34px !important;
+      border-radius: 8px !important;
+      font-size: 10pt !important;
+      font-weight: 800 !important;
+      background: #e8dbb8 !important;
+      color: #7a5a14 !important;
+      border: 1px solid #c9a84c !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      flex-shrink: 0 !important;
+    }
+
+    .eng-name { font-size: 11pt !important; font-weight: 800 !important; color: #111 !important; }
+    .eng-role { font-size: 7.5pt !important; color: #777 !important; margin-top: 2px !important; }
+
+    .mini-grid {
+      display: grid !important;
+      grid-template-columns: 1fr !important;
+      gap: 6px !important;
+      margin-top: 8px !important;
+    }
+
+    .mini-stat {
+      min-height: auto !important;
+      padding: 8px 10px !important;
+      border-radius: 8px !important;
+      background: #fafafa !important;
+      border: 1px solid #e0e0e0 !important;
+      border-left: 3px solid #c9a84c !important;
+      page-break-inside: avoid;
+    }
+
+    .mini-label { font-size: 7pt !important; color: #999 !important; margin-bottom: 4px !important; }
+    .mini-value { font-size: 14pt !important; font-weight: 800 !important; color: #111 !important; -webkit-text-fill-color: #111 !important; }
+    .mini-hint { font-size: 7.5pt !important; color: #aaa !important; margin-top: 3px !important; }
+
+    .stats-grid {
+      display: grid !important;
+      grid-template-columns: repeat(3, 1fr) !important;
+      gap: 8px !important;
+      margin-bottom: 14px !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .stat-card {
+      background: #fafafa !important;
+      border: 1px solid #e0e0e0 !important;
+      border-top: 3px solid #c9a84c !important;
+      border-radius: 8px !important;
+      padding: 10px 12px !important;
+      page-break-inside: avoid;
+    }
+
+    .stat-card::before { display: none !important; }
+    .stat-label { font-size: 7pt !important; font-weight: 800 !important; color: #999 !important; text-transform: uppercase !important; letter-spacing: 0.08em !important; }
+    .stat-icon { display: none !important; }
+    .stat-value { font-size: 18pt !important; font-weight: 800 !important; color: #111 !important; -webkit-text-fill-color: #111 !important; line-height: 1 !important; margin-bottom: 4px !important; }
+    .stat-foot { font-size: 7.5pt !important; color: #888 !important; line-height: 1.4 !important; }
+    .stat-top { margin-bottom: 4px !important; }
+
+    .layout-grid { display: block !important; }
+
+    .card {
+      background: #fff !important;
+      border: 1px solid #e0e0e0 !important;
+      border-radius: 10px !important;
+      padding: 12px 14px !important;
+      margin-bottom: 10px !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+    }
+
+    .card:last-child { margin-bottom: 0 !important; }
+    .card-head { margin-bottom: 10px !important; }
+    .card-title { font-size: 11pt !important; font-weight: 800 !important; color: #111 !important; display: flex !important; align-items: center !important; gap: 8px !important; }
+    .card-title small { font-size: 7pt !important; color: #a07c2a !important; letter-spacing: 0.12em !important; text-transform: uppercase !important; }
+    .subtle-chip { background: #f5f0e6 !important; color: #8a6a1e !important; border: 1px solid #d4c07a !important; font-size: 7.5pt !important; padding: 3px 8px !important; }
+
+    .alert-box {
+      background: #fff8f8 !important;
+      border: 1px solid #fca5a5 !important;
+      border-left: 3px solid #dc2626 !important;
+      color: #7f1d1d !important;
+      border-radius: 8px !important;
+      padding: 10px 12px !important;
+      font-size: 8.5pt !important;
+      page-break-inside: avoid;
+    }
+
+    .alert-icon { display: none !important; }
+
+    .note-box {
+      background: #fffdf0 !important;
+      border: 1px solid #d4c07a !important;
+      border-left: 3px solid #c9a84c !important;
+      color: #444 !important;
+      border-radius: 8px !important;
+      padding: 10px 12px !important;
+      font-size: 8.5pt !important;
+      line-height: 1.7 !important;
+      page-break-inside: avoid;
+    }
+
+    .work-list { gap: 8px !important; }
+
+    .work-item {
+      background: #fff !important;
+      border: 1px solid #e0e0e0 !important;
+      border-radius: 10px !important;
+      padding: 10px 14px !important;
+      page-break-inside: avoid;
+      break-inside: avoid;
+      border-left: 4px solid #ccc !important;
+    }
+
+    .work-item[data-status="on-track"]        { border-left-color: #16a34a !important; }
+    .work-item[data-status="in-progress"]     { border-left-color: #d97706 !important; }
+    .work-item[data-status="needs-attention"] { border-left-color: #dc2626 !important; }
+
+    .wi-top { display: grid !important; grid-template-columns: 1fr 80px !important; align-items: start !important; gap: 10px !important; margin-bottom: 8px !important; }
+    .wi-left { display: flex !important; align-items: flex-start !important; gap: 8px !important; min-width: 0 !important; }
+    .wi-num { width: 24px !important; height: 24px !important; border-radius: 6px !important; font-size: 8pt !important; font-weight: 800 !important; background: #f0f0f0 !important; border: 1px solid #ddd !important; color: #555 !important; display: flex !important; align-items: center !important; justify-content: center !important; flex-shrink: 0 !important; }
+    .wi-content { min-width: 0 !important; flex: 1 !important; }
+    .wi-name { font-size: 11pt !important; font-weight: 800 !important; color: #111 !important; line-height: 1.2 !important; margin: 0 !important; word-break: break-word !important; }
+    .wi-sub { font-size: 8pt !important; color: #888 !important; margin-top: 2px !important; display: flex !important; gap: 6px !important; flex-wrap: wrap !important; }
+    .wi-sub .dot { background: #ccc !important; }
+    .wi-progress-box { text-align: right !important; width: 80px !important; flex-shrink: 0 !important; }
+    .wi-status { display: inline-flex !important; min-height: 18px !important; padding: 0 6px !important; font-size: 6.5pt !important; font-weight: 800 !important; margin-bottom: 2px !important; border-radius: 999px !important; border: 1px solid #ccc !important; background: #f4f4f4 !important; color: #555 !important; }
+
+    .work-item[data-status="on-track"] .wi-status        { color: #16a34a !important; border-color: #86efac !important; background: #f0fdf4 !important; }
+    .work-item[data-status="in-progress"] .wi-status     { color: #d97706 !important; border-color: #fcd34d !important; background: #fffbeb !important; }
+    .work-item[data-status="needs-attention"] .wi-status { color: #dc2626 !important; border-color: #fca5a5 !important; background: #fff5f5 !important; }
+
+    .wi-pct { font-size: 16pt !important; font-weight: 800 !important; line-height: 1 !important; color: #111 !important; -webkit-text-fill-color: #111 !important; }
+    .work-item[data-status="on-track"] .wi-pct        { color: #16a34a !important; -webkit-text-fill-color: #16a34a !important; }
+    .work-item[data-status="in-progress"] .wi-pct     { color: #d97706 !important; -webkit-text-fill-color: #d97706 !important; }
+    .work-item[data-status="needs-attention"] .wi-pct { color: #dc2626 !important; -webkit-text-fill-color: #dc2626 !important; }
+
+    .prog-wrap { margin-bottom: 8px !important; }
+    .prog-track { height: 5px !important; background: #eee !important; border-radius: 999px !important; overflow: hidden !important; position: relative !important; }
+    .prog-fill { height: 100% !important; border-radius: 999px !important; background: #bbb !important; position: absolute !important; inset: 0 auto 0 0 !important; }
+    .work-item[data-status="on-track"] .prog-fill        { background: #16a34a !important; }
+    .work-item[data-status="in-progress"] .prog-fill     { background: #d97706 !important; }
+    .work-item[data-status="needs-attention"] .prog-fill { background: #dc2626 !important; }
+
+    .tags { gap: 4px !important; margin-bottom: 8px !important; }
+    .tag, .tag--supplier, .tag--sub, .tag--agile { min-height: 18px !important; padding: 0 7px !important; font-size: 7pt !important; font-weight: 700 !important; border-radius: 999px !important; background: #f4f4f4 !important; color: #555 !important; border: 1px solid #ddd !important; }
+    .tag--supplier { color: #1d4ed8 !important; background: #eff6ff !important; border-color: #bfdbfe !important; }
+    .tag--sub      { color: #6b21a8 !important; background: #faf5ff !important; border-color: #d8b4fe !important; }
+    .tag--agile    { color: #8a6a1e !important; background: #fffbeb !important; border-color: #e8d48a !important; }
+
+    .mp-grid { display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 5px !important; margin-top: 5px !important; }
+    .mp-item { min-height: auto !important; padding: 6px 8px !important; border-radius: 6px !important; background: #f9f9f9 !important; border: 1px solid #e0e0e0 !important; page-break-inside: avoid; }
+    .mp-val { display: block !important; font-size: 11pt !important; font-weight: 800 !important; color: #111 !important; -webkit-text-fill-color: #111 !important; line-height: 1 !important; }
+    .mp-key { display: block !important; font-size: 6.5pt !important; color: #888 !important; -webkit-text-fill-color: #888 !important; margin-top: 2px !important; line-height: 1.3 !important; }
+
+    .inline-note { background: #f9f9f9 !important; border: 1px solid #e0e0e0 !important; border-left: 3px solid #c9a84c !important; color: #444 !important; font-size: 8pt !important; border-radius: 6px !important; padding: 7px 10px !important; margin-top: 8px !important; page-break-inside: avoid; }
+    .scope-note { background: #eff6ff !important; border: 1px solid #bfdbfe !important; border-left: 3px solid #3b82f6 !important; color: #1e3a5f !important; font-size: 8pt !important; border-radius: 6px !important; padding: 7px 10px !important; margin-top: 8px !important; page-break-inside: avoid; }
+
+    .side-stack { position: static !important; display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 10px !important; margin-top: 10px !important; }
+    .side-stack .card { margin-bottom: 0 !important; }
+
+    .breakdown-list { gap: 0 !important; }
+    .break-item { display: flex !important; flex-direction: row !important; align-items: center !important; justify-content: space-between !important; padding: 7px 0 !important; background: transparent !important; border: 0 !important; border-bottom: 1px solid #eee !important; }
+    .break-item:last-child { border-bottom: 0 !important; }
+    .break-name { font-size: 8.5pt !important; color: #333 !important; }
+    .break-val  { font-size: 8.5pt !important; font-weight: 800 !important; color: #111 !important; }
+    .break-dot  { width: 8px !important; height: 8px !important; flex-shrink: 0 !important; }
+
+    .summary-lines { gap: 0 !important; }
+    .sum-line { display: flex !important; flex-direction: row !important; align-items: flex-start !important; justify-content: space-between !important; padding: 6px 0 !important; border-bottom: 1px solid #eee !important; }
+    .sum-line:last-child { border-bottom: 0 !important; }
+    .sum-k { font-size: 8pt !important; color: #888 !important; }
+    .sum-v { font-size: 8pt !important; font-weight: 700 !important; color: #111 !important; -webkit-text-fill-color: #111 !important; text-align: right !important; max-width: 55% !important; word-break: break-word !important; }
+    .sum-line:nth-last-child(1) .sum-v { color: <%= reportStatusPrint %> !important; -webkit-text-fill-color: <%= reportStatusPrint %> !important; font-weight: 800 !important; }
+
+    .footer-note { display: block !important; text-align: center !important; padding-top: 12px !important; margin-top: 16px !important; border-top: 1px solid #e0e0e0 !important; font-size: 7.5pt !important; color: #aaa !important; letter-spacing: 0.06em !important; text-transform: uppercase !important; }
+
+    .hero       { page-break-after: avoid; break-after: avoid; }
+    .stats-grid { page-break-before: avoid; break-before: avoid; }
+    .work-item, .card, .hero, .stat-card, .mini-stat { page-break-inside: avoid !important; break-inside: avoid !important; }
+    .work-item + .work-item { page-break-before: auto; break-before: auto; }
+  }
+</style>
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+
+<div class="no-print">
+  <%- include('../partials/navbar') %>
+</div>
+
+<div class="page">
+
+  <!-- ── Top actions ──────────────────────────────────────────── -->
+  <div class="top-actions no-print">
+    <div class="top-actions-left">
+      <a href="/admin/dashboard" class="ghost-btn">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" viewBox="0 0 24 24">
+          <path d="M19 12H5m7-7-7 7 7 7"/>
+        </svg>
+        Back to Dashboard
+      </a>
+      <span class="chip-btn">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M9 12h6M9 16h6M9 8h6M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/>
+        </svg>
+        <%= report.reportId %>
+      </span>
+    </div>
+    <div class="top-actions-right">
+      <% if (typeof canEditReports !== 'undefined' && canEditReports) { %>
+      <button class="ghost-btn" onclick="confirmDeleteReport()" style="color:#ef4444;border-color:rgba(239,68,68,0.25);">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+        </svg>
+        Delete
+      </button>
+      <button class="ghost-btn" onclick="openEditModal()" style="color:#c9a84c;border-color:rgba(201,168,76,0.25);">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+        </svg>
+        Edit Report
+      </button>
+      <% } %>
+      <button class="print-btn" onclick="window.print()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path d="M6 9V2h12v7"/>
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+          <rect x="6" y="14" width="12" height="8" rx="1"/>
+        </svg>
+        Print / Export PDF
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Hero ─────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="hero-grid">
+      <div class="hero-left">
+        <div class="hero-topline">
+          <span class="section-chip">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <path d="M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>
+            </svg>
+            Daily Site Report
+          </span>
+
+        </div>
+
+        <h1 class="hero-title"><%= report.siteName || 'Project Report' %></h1>
+
+        <p class="hero-subtitle">
+          Detailed daily execution summary covering project activity, workforce deployment,
+          progress status, duration, and field notes for this reporting period.
+        </p>
+
+        <div class="hero-meta">
+          <div class="meta-pill">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="18" rx="2"/>
+              <path d="M16 2v4M8 2v4M3 10h18"/>
+            </svg>
+            <span class="label">Date</span>
+            <span><%= fmt(report.date) %></span>
+          </div>
+
+          <div class="meta-pill">
+            <% if (report.shiftType === 'Night') { %>
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+              </svg>
+            <% } else { %>
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="4"/>
+                <path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+              </svg>
+            <% } %>
+            <span class="label">Shift</span>
+            <span><%= report.shiftType || '—' %></span>
+          </div>
+
+          <div class="meta-pill">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 6v6l4 2"/>
+            </svg>
+            <span class="label">Time</span>
+            <span><%= report.startTime ? (function(t){var h=parseInt(t),s=h>=12?'PM':'AM',h12=h%12||12,m=t.split(':')[1];return h12+':'+m+' '+s;})(report.startTime) : '—' %> — <%= report.endTime ? (function(t){var h=parseInt(t),s=h>=12?'PM':'AM',h12=h%12||12,m=t.split(':')[1];return h12+':'+m+' '+s;})(report.endTime) : '—' %></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="hero-side">
+        <div class="hero-engineer">
+          <div class="eyebrow">Report Owner</div>
+          <div class="eng-row">
+            <div class="eng-avatar"><%= initials(report.engineerName) %></div>
+            <div>
+              <div class="eng-name"><%= report.engineerName || '—' %></div>
+              <div class="eng-role">Site Engineer / Submitted Daily Report</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="mini-grid">
+         
+          <div class="mini-stat">
+            <div class="mini-label">Shift Duration</div>
+            <div class="mini-value"><%= dur(report.shiftDurationMinutes) || '—' %></div>
+            <div class="mini-hint">From start to end time</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Stats grid ────────────────────────────────────────────── -->
+  <section class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-label">Total Workers</div>
+        <div class="stat-icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-value"><%= reportTotalManpower %></div>
+      <div class="stat-foot">Total manpower recorded across all activities in this report.</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-label">Activities</div>
+        <div class="stat-icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-value"><%= itemsCount %></div>
+      <div class="stat-foot">Number of work items and executed activities logged for the day.</div>
+    </div>
+
+  
+
+    <div class="stat-card">
+      <div class="stat-top">
+        <div class="stat-label">Shift Duration</div>
+        <div class="stat-icon">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+        </div>
+      </div>
+      <div class="stat-value"><%= dur(report.shiftDurationMinutes) || '—' %></div>
+      <div class="stat-foot">Captured based on report start and finish time values.</div>
+    </div>
+  </section>
+
+  <!-- ── Main layout ───────────────────────────────────────────── -->
+  <section class="layout-grid">
+    <div>
+
+      <!-- Comments & Delays -->
+      <% if (report.generalComment || report.generalDelays) { %>
+        <div class="card">
+          <div class="card-head">
+            <h2 class="card-title">
+              <small>Executive Notes</small>
+              Delays & Plans
+            </h2>
+            <span class="subtle-chip">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+              Site Notes
+            </span>
+          </div>
+
+          <% if (report.generalDelays) { %>
+            <div class="alert-box">
+              <div class="alert-icon">
+                <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+                  <path d="M10.29 3.86L1.82 18A2 2 0 0 0 3.53 21h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                  <path d="M12 9v4"/>
+                  <path d="M12 17h.01"/>
+                </svg>
+              </div>
+              <div>
+                <strong style="display:block;margin-bottom:4px;">Delays / Issues</strong>
+                <%- report.generalDelays %>
+              </div>
+            </div>
+          <% } %>
+
+          <% if (report.generalComment) { %>
+            <div style="font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:0.1em;color:rgba(201,168,76,0.66);margin-bottom:8px;">Plans for Tomorrow</div>
+            <div class="note-box"><%= report.generalComment %></div>
+          <% } %>
+        </div>
+      <% } %>
+
+      <!-- Work Items -->
+      <div class="card">
+        <div class="card-head">
+          <h2 class="card-title">
+            <small>Execution Log</small>
+            Work Items
+          </h2>
+          <span class="subtle-chip">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+              <path d="M9 11l3 3L22 4"/>
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+            </svg>
+            <%= allItems.length %> item<%= allItems.length === 1 ? '' : 's' %>
+          </span>
+        </div>
+
+        <% if (allItems.length > 0) { %>
+          <div class="work-list">
+            <% allItems.forEach(function(item, idx) {
+              const pc = safePct(item.progress);
+              const col = pColor(pc);
+              const bg  = pSoft(pc);
+              const br  = pBorder(pc);
+
+              const statusKey = pc >= 80 ? 'on-track' : pc >= 45 ? 'in-progress' : 'needs-attention';
+
+              // ── Resolve manpower from sources[] (new schema) or legacy flat fields ──
+              const hasSources = item.sources && item.sources.length > 0;
+              const MP_KEYS = ['steelFixer','steelFixerForemen','carpenter','carpenterForemen','helper','scaffolding','engineersNo'];
+              const MP_LABELS = {'steelFixer':'Steel Fixer','steelFixerForemen':'SF Foremen','carpenter':'Carpenter','carpenterForemen':'CP Foremen','helper':'Helper','scaffolding':'Scaffold','engineersNo':'Engineers'};
+
+              // Aggregate all sources manpower into one object for quick summary
+              const aggMp = {};
+              MP_KEYS.forEach(k => { aggMp[k] = 0; });
+              let computedTotal = 0;
+
+              if (hasSources) {
+                item.sources.forEach(function(src) {
+                  const mp = src.manpower || {};
+                  MP_KEYS.forEach(function(k) { aggMp[k] += (Number(mp[k]) || 0); });
+                  computedTotal += (Number(src.totalManpower) || 0);
+                });
+              }
+
+              // If sources didn't yield anything, fallback to legacy fields
+              if (computedTotal === 0 && !hasSources) {
+                const legacyMp = item.manpower || {};
+                const extMp    = item.externalManpower || {};
+                MP_KEYS.forEach(function(k) { aggMp[k] = (Number(legacyMp[k]) || 0) + (Number(extMp[k]) || 0); });
+                computedTotal = (Number(item.totalManpower) || 0) + (Number(item.externalTotalManpower) || 0);
+              }
+
+              // If computedTotal is still 0 but item.totalManpower exists (pre-calculated by hook), use it
+              if (computedTotal === 0 && (Number(item.totalManpower) || 0) > 0) {
+                computedTotal = Number(item.totalManpower);
+              }
+
+              const mpFields = MP_KEYS
+                .map(function(k) { return [MP_LABELS[k], aggMp[k]]; })
+                .filter(function(f) { return Number(f[1]) > 0; });
+
+              const isSupplier = itemHasSourceType(item, 'Supplier');
+              const isSub      = itemHasSourceType(item, 'Subcontractor');
+              const isExt      = isSupplier || isSub;
+            %>
+              <div class="work-item" data-status="<%= statusKey %>">
+                <div class="wi-top">
+                  <div class="wi-left">
+                    <div class="wi-num"><%= item.itemNo || idx + 1 %></div>
+                    <div class="wi-content">
+                      <h3 class="wi-name"><%= item.element || 'Untitled Activity' %></h3>
+                      <div class="wi-sub">
+                        <span><%= item.level || 'No Level' %></span>
+                        <span class="dot"></span>
+                        <span><%= item.activity || 'No Activity' %></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="wi-progress-box">
+                    <div class="wi-status"
+                      style="color:<%= col %>;background:<%= bg %>;border-color:<%= br %>;">
+                      <%= pLabel(pc) %>
+                    </div>
+                    <div class="wi-pct" style="color:<%= col %>;"><%= pc %>%</div>
+                  </div>
+                </div>
+
+                <div class="prog-wrap">
+                  <div class="prog-track">
+                    <div class="prog-fill" style="width:<%= pc %>%;background:<%= col %>;"></div>
+                    <div class="prog-knob" style="left:<%= pc %>%;"></div>
+                  </div>
+                </div>
+
+                <div class="tags">
+                  <% if (item.shiftType) { %>
+                    <span class="tag" style="<%= item.shiftType === 'Night' ? 'background:rgba(99,102,241,0.1);color:#a5b4fc;border-color:rgba(99,102,241,0.25)' : 'background:rgba(201,168,76,0.1);color:#c9a84c;border-color:rgba(201,168,76,0.25)' %>">
+                      <% if (item.shiftType === 'Night') { %>
+                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+                      <% } else { %>
+                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+                      <% } %>
+                      <%= item.shiftType %> Shift<% if (item.startTime && item.endTime) { %>&nbsp;· <%
+                        function fmt12(t){if(!t)return'';var h=parseInt(t),s=h>=12?'PM':'AM',h12=h%12||12,m=t.split(':')[1];return h12+':'+m+' '+s;}
+                      %><%= fmt12(item.startTime) %> – <%= fmt12(item.endTime) %><% } %><% if (item.shiftDurationMinutes > 0) { %>&nbsp;(<%= Math.floor(item.shiftDurationMinutes/60) %>h<%= item.shiftDurationMinutes%60 ? ' '+item.shiftDurationMinutes%60+'m' : '' %>)<% } %>
+                    </span>
+                  <% } %>
+
+                  <% if (isSupplier) { %>
+                    <span class="tag tag--supplier">Supplier</span>
+                  <% } else if (isSub) { %>
+                    <span class="tag tag--sub">Subcontractor</span>
+                  <% } else { %>
+                    <span class="tag tag--agile">In-House</span>
+                  <% } %>
+
+                  <% if (computedTotal > 0) { %>
+                    <span class="tag">
+                      <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2.1" viewBox="0 0 24 24">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                      </svg>
+                      <%= computedTotal %> workers
+                    </span>
+                  <% } %>
+
+                  <% if (hasSources) {
+                    item.sources.filter(function(s){ return s.type !== 'In-House'; }).forEach(function(s) {
+                      if (s.companyName) { %>
+                        <span class="tag"><%= s.companyName %></span>
+                  <%  }
+                    });
+                  } else if (isExt && item.sourceCompanyName) { %>
+                    <span class="tag"><%= item.sourceCompanyName %></span>
+                  <% } %>
+                </div>
+
+                <% if (hasSources && computedTotal > 0) { %>
+                  <div>
+                    <div class="mini-label" style="margin-bottom:10px;">Manpower Breakdown</div>
+
+                    <%/* ── Per-source breakdown ── */%>
+                    <% item.sources.forEach(function(src) {
+                      const srcMp = src.manpower || {};
+                      const srcTotal = Number(src.totalManpower) || 0;
+                      if (srcTotal === 0) return;
+
+                      const srcFields = MP_KEYS
+                        .map(function(k) { return [MP_LABELS[k], Number(srcMp[k]) || 0]; })
+                        .filter(function(f) { return f[1] > 0; });
+
+                      const srcColor = src.type === 'In-House' ? '#c9a84c' : '#60a5fa';
+                      const srcColorA12 = src.type === 'In-House' ? 'rgba(201,168,76,0.12)' : 'rgba(96,165,250,0.12)';
+                      const srcColorA04 = src.type === 'In-House' ? 'rgba(201,168,76,0.04)' : 'rgba(96,165,250,0.04)';
+                      const srcColorA20 = src.type === 'In-House' ? 'rgba(201,168,76,0.2)' : 'rgba(96,165,250,0.2)';
+                      const srcColorA08 = src.type === 'In-House' ? 'rgba(201,168,76,0.06)' : 'rgba(96,165,250,0.08)';
+                      const srcLabel = src.type === 'In-House' ? 'In-House Workers' : (src.type + (src.companyName ? ' — ' + src.companyName : '') + ' Workers');
+                    %>
+                      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:<%= srcColor %>;opacity:0.8;display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                        <span style="width:6px;height:6px;border-radius:50%;background:<%= srcColor %>;flex-shrink:0;display:inline-block;"></span>
+                        <%= srcLabel %>
+                      </div>
+                      <div class="mp-grid" style="margin-bottom:10px;">
+                        <% srcFields.forEach(function(f) { %>
+                          <div class="mp-item" style="border-color:<%= srcColorA12 %>;background:<%= srcColorA04 %>;">
+                            <div class="mp-val" style="color:<%= srcColor %>;"><%= f[1] %></div>
+                            <div class="mp-key"><%= f[0] %></div>
+                          </div>
+                        <% }); %>
+                        <div class="mp-item" style="border-color:<%= srcColorA20 %>;background:<%= srcColorA08 %>;">
+                          <div class="mp-val" style="color:<%= srcColor %>;font-size:15px;"><%= srcTotal %></div>
+                          <div class="mp-key">Total</div>
+                        </div>
+                      </div>
+                    <% }); %>
+
+                    <%/* ── Aggregated total (all sources combined) ── */%>
+                    <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
+                      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.35);display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+                        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24" style="opacity:0.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                        Combined Workforce
+                      </div>
+                      <div class="mp-grid">
+                        <% mpFields.forEach(function(f) { %>
+                          <div class="mp-item">
+                            <div class="mp-val"><%= f[1] %></div>
+                            <div class="mp-key"><%= f[0] %></div>
+                          </div>
+                        <% }); %>
+                        <div class="mp-item" style="border-color:rgba(201,168,76,0.2);background:rgba(201,168,76,0.06);">
+                          <div class="mp-val" style="font-size:15px;color:#c9a84c;"><%= computedTotal %></div>
+                          <div class="mp-key">Total</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                <% } else if (mpFields.length > 0) { %>
+                  <!-- Legacy fallback -->
+                  <div>
+                    <div class="mini-label" style="margin-bottom:10px;">Manpower Breakdown</div>
+                    <div class="mp-grid">
+                      <% mpFields.forEach(function(f) { %>
+                        <div class="mp-item">
+                          <div class="mp-val"><%= f[1] %></div>
+                          <div class="mp-key"><%= f[0] %></div>
+                        </div>
+                      <% }); %>
+                    </div>
+                  </div>
+                <% } %>
+
+                <% if (item.itemComment) { %>
+                  <div class="inline-note">
+                    <strong style="color:#fff;">Comment:</strong>
+                    <%= item.itemComment %>
+                  </div>
+                <% } %>
+
+                <% if (isExt && item.sourceScopeNotes) { %>
+                  <div class="scope-note">
+                    <strong style="color:#fff;">Scope Notes:</strong>
+                    <%= item.sourceScopeNotes %>
+                  </div>
+                <% } %>
+              </div>
+            <% }); %>
+          </div>
+        <% } else { %>
+          <div class="note-box" style="text-align:center;">
+            No work items were recorded for this report.
+          </div>
+        <% } %>
+      </div>
+
+    </div>
+
+    <!-- ── Sidebar ───────────────────────────────────────────── -->
+    <aside class="side-stack">
+      <div class="card">
+        <div class="card-head">
+          <h2 class="card-title">
+            <small>Resource Split</small>
+            Labor Source Breakdown
+          </h2>
+        </div>
+        <div class="breakdown-list">
+          <% if (inHouse > 0) { %>
+            <div class="break-item">
+              <div class="break-left">
+                <span class="break-dot" style="background:#c9a84c;"></span>
+                <span class="break-name">In-House (Agile Prime)</span>
+              </div>
+              <span class="break-val"><%= inHouse %> activit<%= inHouse === 1 ? 'y' : 'ies' %></span>
+            </div>
+          <% } %>
+          <% if (supplier > 0) { %>
+            <div class="break-item">
+              <div class="break-left">
+                <span class="break-dot" style="background:#60a5fa;"></span>
+                <span class="break-name">Supplier</span>
+              </div>
+              <span class="break-val"><%= supplier %> activit<%= supplier === 1 ? 'y' : 'ies' %></span>
+            </div>
+          <% } %>
+          <% if (subcon > 0) { %>
+            <div class="break-item">
+              <div class="break-left">
+                <span class="break-dot" style="background:#c084fc;"></span>
+                <span class="break-name">Subcontractor</span>
+              </div>
+              <span class="break-val"><%= subcon %> activit<%= subcon === 1 ? 'y' : 'ies' %></span>
+            </div>
+          <% } %>
+          <% if (inHouse === 0 && supplier === 0 && subcon === 0) { %>
+            <div class="note-box">No labor source data available.</div>
+          <% } %>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h2 class="card-title">
+            <small>Quick Summary</small>
+            Report Snapshot
+          </h2>
+        </div>
+        <div class="summary-lines">
+          <div class="sum-line">
+            <div class="sum-k">Report ID</div>
+            <div class="sum-v" style="font-family:'JetBrains Mono','Courier New',monospace;">
+              <%= report.reportId || '—' %>
+            </div>
+          </div>
+          <div class="sum-line">
+            <div class="sum-k">Project / Site</div>
+            <div class="sum-v"><%= report.siteName || '—' %></div>
+          </div>
+          <div class="sum-line">
+            <div class="sum-k">Engineer</div>
+            <div class="sum-v"><%= report.engineerName || '—' %></div>
+          </div>
+          <div class="sum-line">
+            <div class="sum-k">Date</div>
+            <div class="sum-v"><%= fmt(report.date) %></div>
+          </div>
+          <div class="sum-line">
+            <div class="sum-k">Shift</div>
+            <div class="sum-v">
+              <% const shiftTypes = [...new Set((report.items||[]).map(i=>i.shiftType).filter(Boolean))]; %>
+              <% if (shiftTypes.length === 0) { %>
+                <%= report.shiftType || '—' %>
+              <% } else if (shiftTypes.length === 1) { %>
+                <%= shiftTypes[0] %>
+              <% } else { %>
+                Mixed (Day + Night)
+              <% } %>
+            </div>
+          </div>
+          <div class="sum-line">
+            <div class="sum-k">Start / End</div>
+            <div class="sum-v"><%= report.startTime || '—' %> — <%= report.endTime || '—' %></div>
+          </div>
+          <div class="sum-line">
+            <div class="sum-k">Duration</div>
+            <div class="sum-v"><%= dur(report.shiftDurationMinutes) || '—' %></div>
+          </div>
+          <div class="sum-line">
+            <div class="sum-k">Average Progress</div>
+            <div class="sum-v" style="color:<%= reportStatusColor %>;">
+              <%= avgProgress %>%
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </section>
+
+  <div class="footer-note">
+    Agile Prime General Contracting L.L.C. &nbsp;·&nbsp;
+    <%= report.reportId %> &nbsp;·&nbsp;
+    Generated <%= new Date().toLocaleDateString('en-GB') %>
+  </div>
+
+</div>
+
+<% if (typeof canEditReports !== 'undefined' && canEditReports) { %>
+<!-- ═══════ EDIT REPORT MODAL ═══════ -->
+<div id="editModal" class="no-print" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(4px);overflow-y:auto;">
+  <div style="max-width:820px;margin:40px auto;padding:0 16px;">
+    <div style="background:#0c1017;border:1px solid rgba(255,255,255,0.08);border-radius:22px;padding:28px;">
+
+      <!-- Header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <div>
+          <h2 style="font-size:18px;font-weight:800;color:#fff;margin:0;">Edit Report</h2>
+          <p style="font-size:12px;color:rgba(255,255,255,0.4);margin:4px 0 0;"><%= report.reportId %></p>
+        </div>
+        <button onclick="closeEditModal()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);border-radius:10px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff;">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <!-- Report Header Fields -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.35);margin-bottom:6px;">Date</label>
+          <input type="date" id="editDate" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;" />
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.35);margin-bottom:6px;">Shift</label>
+          <select id="editShift" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;">
+            <option value="Day">Day</option>
+            <option value="Night">Night</option>
+          </select>
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.35);margin-bottom:6px;">Start Time</label>
+          <input type="time" id="editStart" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;" />
+        </div>
+        <div>
+          <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.35);margin-bottom:6px;">End Time</label>
+          <input type="time" id="editEnd" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;" />
+        </div>
+      </div>
+
+      <div style="margin-bottom:14px;">
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.35);margin-bottom:6px;">Delays / Issues</label>
+        <textarea id="editDelays" rows="2" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;"></textarea>
+      </div>
+      <div style="margin-bottom:20px;">
+        <label style="display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:rgba(255,255,255,0.35);margin-bottom:6px;">Plans for Tomorrow</label>
+        <textarea id="editComment" rows="2" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 14px;color:#fff;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;"></textarea>
+      </div>
+
+      <!-- Work Items -->
+      <div style="margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <h3 style="font-size:14px;font-weight:700;color:#fff;margin:0;">Work Items</h3>
+        </div>
+        <div id="editItemsList" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:10px;justify-content:flex-end;padding-top:16px;border-top:1px solid rgba(255,255,255,0.06);">
+        <button onclick="closeEditModal()" style="padding:10px 22px;border-radius:10px;font-size:13px;font-weight:600;color:rgba(255,255,255,0.5);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.08);cursor:pointer;">Cancel</button>
+        <button onclick="saveReport()" id="editSaveBtn" style="padding:10px 22px;border-radius:10px;font-size:13px;font-weight:700;color:#080a10;background:linear-gradient(135deg,#c9a84c,#e2c97e);border:none;cursor:pointer;">Save Changes</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+  const REPORT_ID = '<%= report.reportId %>';
+  const REPORT_DATA = <%- JSON.stringify(report) %>;
+  const MP_KEYS_EDIT = ['steelFixer','steelFixerForemen','carpenter','carpenterForemen','helper','scaffolding','engineersNo'];
+  const MP_LABELS_EDIT = {steelFixer:'Steel Fixer',steelFixerForemen:'SF Foremen',carpenter:'Carpenter',carpenterForemen:'Carp FM',helper:'Helper',scaffolding:'Scaffold',engineersNo:'Engineers'};
+
+  function openEditModal() {
+    const r = REPORT_DATA;
+    document.getElementById('editDate').value = r.date ? new Date(r.date).toISOString().slice(0,10) : '';
+    document.getElementById('editShift').value = r.shiftType || 'Day';
+    document.getElementById('editStart').value = r.startTime || '';
+    document.getElementById('editEnd').value = r.endTime || '';
+    document.getElementById('editDelays').value = r.generalDelays || '';
+    document.getElementById('editComment').value = r.generalComment || '';
+    renderEditItems(r.items || []);
+    document.getElementById('editModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeEditModal() {
+    document.getElementById('editModal').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  // Close on ESC
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEditModal(); });
+
+  function renderEditItems(items) {
+    const list = document.getElementById('editItemsList');
+    list.innerHTML = items.map((item, idx) => {
+      const sources = item.sources || [];
+      return `
+      <div class="edit-item-card" data-idx="${idx}" style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="width:24px;height:24px;border-radius:8px;background:rgba(201,168,76,0.1);color:#c9a84c;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">${idx+1}</span>
+            <span style="font-size:14px;font-weight:700;color:#fff;">${esc(item.element||'')}</span>
+            <span style="font-size:11px;color:rgba(255,255,255,0.3);">${esc(item.level||'')} · ${esc(item.activity||'')}</span>
+          </div>
+          <button onclick="removeEditItem(${idx})" style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:8px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#ef4444;" title="Remove item">
+            <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div>
+            <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:4px;">Element</label>
+            <input class="ei-element" value="${esc(item.element||'')}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;color:#fff;font-size:12px;outline:none;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:4px;">Level</label>
+            <input class="ei-level" value="${esc(item.level||'')}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;color:#fff;font-size:12px;outline:none;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:4px;">Activity</label>
+            <input class="ei-activity" value="${esc(item.activity||'')}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;color:#fff;font-size:12px;outline:none;" />
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+          <div>
+            <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:4px;">Progress %</label>
+            <input type="number" class="ei-progress" min="0" max="100" value="${item.progress||0}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;color:#fff;font-size:12px;outline:none;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:4px;">Shift</label>
+            <select class="ei-shift" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;color:#fff;font-size:12px;outline:none;">
+              <option value="Day" ${item.shiftType!=='Night'?'selected':''}>Day</option>
+              <option value="Night" ${item.shiftType==='Night'?'selected':''}>Night</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:4px;">Start</label>
+            <input type="time" class="ei-start" value="${item.startTime||''}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;color:#fff;font-size:12px;outline:none;" />
+          </div>
+          <div>
+            <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:4px;">End</label>
+            <input type="time" class="ei-end" value="${item.endTime||''}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;color:#fff;font-size:12px;outline:none;" />
+          </div>
+        </div>
+
+        <div style="margin-bottom:10px;">
+          <label style="display:block;font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:4px;">Comment</label>
+          <input class="ei-comment" value="${esc(item.itemComment||'')}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;color:#fff;font-size:12px;outline:none;" />
+        </div>
+
+        <!-- Sources -->
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,0.25);margin-bottom:8px;">Labor Sources</div>
+        <div class="ei-sources" style="display:flex;flex-direction:column;gap:8px;">
+          ${sources.map((src, si) => renderEditSource(src, si)).join('')}
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  function renderEditSource(src, si) {
+    const mp = src.manpower || {};
+    return `
+    <div class="ei-source" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:10px;padding:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+        <select class="eis-type" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:5px 8px;color:#fff;font-size:11px;outline:none;">
+          <option value="In-House" ${src.type==='In-House'?'selected':''}>In-House</option>
+          <option value="Supplier" ${src.type==='Supplier'?'selected':''}>Supplier</option>
+          <option value="Subcontractor" ${src.type==='Subcontractor'?'selected':''}>Subcontractor</option>
+        </select>
+        <input class="eis-company" placeholder="Company" value="${esc(src.companyName||'')}" style="flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:6px;padding:5px 8px;color:#fff;font-size:11px;outline:none;" />
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
+        ${MP_KEYS_EDIT.map(k => `
+          <div style="text-align:center;">
+            <div style="font-size:8px;color:rgba(255,255,255,0.2);margin-bottom:2px;">${MP_LABELS_EDIT[k]}</div>
+            <input type="number" min="0" class="eis-mp-${k}" value="${mp[k]||0}" style="width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:5px;padding:5px 2px;color:#fff;font-size:12px;text-align:center;outline:none;" />
+          </div>
+        `).join('')}
+      </div>
+    </div>`;
+  }
+
+  function removeEditItem(idx) {
+    if (!confirm('Remove this work item?')) return;
+    const cards = document.querySelectorAll('.edit-item-card');
+    if (cards[idx]) cards[idx].remove();
+    // Re-number remaining cards
+    document.querySelectorAll('.edit-item-card').forEach((card, i) => {
+      card.dataset.idx = i;
+      const numEl = card.querySelector('span[style*="border-radius:8px"]');
+      if (numEl) numEl.textContent = i + 1;
+    });
+  }
+
+  function collectEditData() {
+    const data = {
+      date: document.getElementById('editDate').value,
+      shiftType: document.getElementById('editShift').value,
+      startTime: document.getElementById('editStart').value,
+      endTime: document.getElementById('editEnd').value,
+      generalDelays: document.getElementById('editDelays').value,
+      generalComment: document.getElementById('editComment').value,
+      items: [],
+    };
+
+    document.querySelectorAll('.edit-item-card').forEach(card => {
+      const sources = [];
+      card.querySelectorAll('.ei-source').forEach(srcEl => {
+        const mp = {};
+        MP_KEYS_EDIT.forEach(k => {
+          const inp = srcEl.querySelector('.eis-mp-' + k);
+          mp[k] = inp ? (parseInt(inp.value, 10) || 0) : 0;
+        });
+        sources.push({
+          type: srcEl.querySelector('.eis-type').value,
+          companyName: srcEl.querySelector('.eis-company').value.trim(),
+          scopeNotes: '',
+          manpower: mp,
+        });
+      });
+
+      data.items.push({
+        element: card.querySelector('.ei-element').value.trim(),
+        level: card.querySelector('.ei-level').value.trim(),
+        activity: card.querySelector('.ei-activity').value.trim(),
+        progress: parseInt(card.querySelector('.ei-progress').value, 10) || 0,
+        itemComment: card.querySelector('.ei-comment').value.trim(),
+        shiftType: card.querySelector('.ei-shift').value,
+        startTime: card.querySelector('.ei-start').value,
+        endTime: card.querySelector('.ei-end').value,
+        sources,
+      });
+    });
+
+    return data;
+  }
+
+  async function saveReport() {
+    const btn = document.getElementById('editSaveBtn');
+    const origText = btn.textContent;
+    btn.textContent = 'Saving...';
+    btn.disabled = true;
+
+    try {
+      const data = collectEditData();
+      const res = await fetch('/api/admin/reports/' + REPORT_ID, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || 'Failed to save');
+      }
+      alert('Report updated successfully!');
+      window.location.reload();
+    } catch (err) {
+      alert('Error: ' + err.message);
+    } finally {
+      btn.textContent = origText;
+      btn.disabled = false;
+    }
+  }
+
+  function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+  }
+</script>
+<% } %>
+
+<script>
+  async function confirmDeleteReport() {
+    const reportId = '<%= report.reportId %>';
+    const confirmed = confirm(
+      `⚠️ Delete Report ${reportId}?\n\nThis will permanently delete this report and all its work items.\nThis action cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    // Second confirmation for safety
+    const reconfirmed = confirm(`Are you sure? Report "${reportId}" will be deleted permanently.`);
+    if (!reconfirmed) return;
+
+    try {
+      const res = await fetch('/api/admin/reports/' + reportId, { method: 'DELETE' });
+      const result = await res.json();
+      if (!res.ok || !result.success) throw new Error(result.error || 'Failed to delete');
+      alert('Report deleted successfully.');
+      window.location.href = '/admin/reports';
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  }
+</script>
+
+</body>
+</html>

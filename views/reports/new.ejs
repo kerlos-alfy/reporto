@@ -1,0 +1,1914 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= (typeof adminUser !== 'undefined' && adminUser && adminUser.theme) ? adminUser.theme : 'navy' %>">
+<head>
+  <!-- Theme: apply before render to prevent flash -->
+  <script>
+    (function(){var t=localStorage.getItem('ag_theme');if(t&&['navy','cyan','amber'].includes(t)){document.documentElement.setAttribute('data-theme',t);if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}})();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/logo.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/assets/images/logo.png">
+  <link rel="apple-touch-icon" href="/assets/images/logo.png">
+  <title>Daily Site Report — AGILE PRIME</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              950: 'var(--surface-950)',
+              900: 'var(--surface-900)',
+              850: 'var(--surface-850)',
+              800: 'var(--surface-800)',
+              750: 'var(--surface-800)',
+              700: 'var(--surface-700)',
+              600: 'var(--surface-700)',
+              500: 'var(--surface-700)',
+              gold:         'var(--accent)',
+              'gold-light': 'var(--accent-light)',
+              'gold-dim':   'var(--accent-dim)',
+              'gold-glow':  'var(--accent-a08)',
+              'gold-border':'var(--accent-a15)',
+            }
+          },
+          fontFamily: {
+            sans: ['DM Sans', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    :root {
+      --gold: #c9a84c;
+      --gold-light: #e2c97e;
+      --gold-alpha-08: rgba(201,168,76,0.08);
+      --gold-alpha-12: rgba(201,168,76,0.12);
+      --gold-alpha-20: rgba(201,168,76,0.20);
+      --gold-alpha-35: rgba(201,168,76,0.35);
+      --surface-1: rgba(255,255,255,0.035);
+      --surface-2: rgba(255,255,255,0.055);
+      --border-subtle: rgba(255,255,255,0.07);
+      --border-medium: rgba(255,255,255,0.12);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-muted: rgba(148,163,184,0.5);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 20px;
+    }
+
+    * { box-sizing: border-box; }
+
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--gold-alpha-20); border-radius: 99px; }
+
+    /* ── BACKGROUND ── */
+    .page-bg {
+      position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      background: radial-gradient(ellipse 80% 50% at 50% -20%, rgba(201,168,76,0.06) 0%, transparent 60%),
+                  radial-gradient(ellipse 60% 40% at 80% 80%, rgba(37,58,94,0.15) 0%, transparent 50%);
+    }
+
+    /* ── FIELD SYSTEM ── */
+    .field-label {
+      display: flex; align-items: center; gap: 5px;
+      font-size: 11px; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--text-muted); margin-bottom: 7px;
+      transition: color 0.2s;
+    }
+    .field-group:focus-within .field-label { color: var(--gold); }
+    .field-label .req { width: 4px; height: 4px; border-radius: 50%; background: #ef4444; flex-shrink: 0; }
+
+    .field-input {
+      width: 100%;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 11px 14px; font-size: 14px;
+      color: var(--text-primary);
+      font-family: 'DM Sans', sans-serif;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+      outline: none; -webkit-appearance: none; appearance: none;
+    }
+    .field-input::placeholder { color: rgba(148,163,184,0.35); }
+    .field-input:hover { border-color: var(--gold-alpha-20); background: rgba(255,255,255,0.04); }
+    .field-input:focus { border-color: rgba(201,168,76,0.45); background: rgba(201,168,76,0.03); box-shadow: 0 0 0 3px rgba(201,168,76,0.07); }
+
+    /* Disabled field state */
+    .field-input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: rgba(255,255,255,0.015);
+    }
+    .field-input:disabled:hover {
+      border-color: var(--border-subtle);
+      background: rgba(255,255,255,0.015);
+    }
+
+    .locked-field {
+      display: flex; align-items: center; gap: 6px;
+      color: #e2e8f0; font-size: 0.875rem; cursor: not-allowed;
+      border-color: rgba(201,168,76,0.18); background: rgba(201,168,76,0.04);
+      opacity: 0.85; user-select: none;
+    }
+    .text-gold { color: var(--gold, #c9a84c); }
+
+    select.field-input {
+      background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23c9a84c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 13px center; padding-right: 36px; cursor: pointer;
+      background-color: rgba(15,23,42,0.9);
+    }
+    select.field-input option { background: #0d1528; color: #e2e8f0; }
+    select.field-input option:checked { background: rgba(201,168,76,0.2); color: #e2c97e; }
+    textarea.field-input { resize: vertical; min-height: 72px; line-height: 1.5; }
+
+    /* Loading select state */
+    select.field-input.loading {
+      background-image: url("data:image/svg+xml,%3Csvg width='14' height='14' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='12' cy='12' r='10' stroke='%23c9a84c' stroke-width='2' stroke-opacity='0.25'/%3E%3Cpath d='M12 2a10 10 0 0 1 10 10' stroke='%23c9a84c' stroke-width='2' stroke-linecap='round'%3E%3CanimateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='0.8s' repeatCount='indefinite'/%3E%3C/path%3E%3C/svg%3E");
+      background-position: right 11px center;
+    }
+
+    /* ── SECTION CARDS ── */
+    .section-card {
+      background: linear-gradient(145deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.02) 100%);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      overflow: hidden;
+      transition: border-color 0.3s;
+    }
+    .section-card:hover { border-color: rgba(201,168,76,0.1); }
+    .section-card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(255,255,255,0.015);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .section-card-body { padding: 20px; }
+
+    /* ── SECTION ICON ── */
+    .section-icon {
+      width: 32px; height: 32px; border-radius: 9px;
+      background: var(--gold-alpha-08);
+      border: 1px solid var(--gold-alpha-20);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .section-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+    .section-subtitle { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+    /* ── DIVIDER ── */
+    .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--gold-alpha-20), transparent); margin: 16px 0; }
+
+    /* ── SHIFT TOGGLE ── */
+    .shift-group { display: flex; gap: 6px; }
+    .shift-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+      padding: 10px 12px; border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      background: rgba(255,255,255,0.02);
+      color: var(--text-secondary);
+      font-size: 13px; font-weight: 600;
+      cursor: pointer; transition: all 0.18s;
+    }
+    .shift-btn:hover { border-color: var(--gold-alpha-20); color: var(--gold); background: var(--gold-alpha-08); }
+    .shift-btn.active { border-color: var(--gold); background: var(--gold-alpha-12); color: var(--gold); box-shadow: 0 0 16px rgba(201,168,76,0.1); }
+
+    /* ── DURATION BADGE ── */
+    .duration-badge {
+      display: flex; align-items: center; justify-content: center; gap: 7px;
+      padding: 11px 14px; border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      background: rgba(255,255,255,0.03);
+      color: var(--gold); font-size: 14px; font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      min-height: 44px;
+    }
+    .duration-badge .dur-icon { color: rgba(201,168,76,0.5); flex-shrink: 0; }
+
+    /* ── WORK ITEM CARD ── */
+    .work-item-card {
+      background: linear-gradient(145deg, rgba(201,168,76,0.025) 0%, rgba(255,255,255,0.018) 100%);
+      border: 1px solid rgba(201,168,76,0.12);
+      border-radius: var(--radius-xl);
+      overflow: visible;   /* allow time-panel dropdown to overflow the card */
+      transition: all 0.3s;
+      animation: slideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(12px) scale(0.98); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .work-item-card:hover { border-color: rgba(201,168,76,0.22); box-shadow: 0 4px 32px rgba(201,168,76,0.04); }
+
+    .item-header {
+      padding: 14px 18px;
+      background: rgba(201,168,76,0.03);
+      border-bottom: 1px solid rgba(201,168,76,0.08);
+      display: flex; align-items: center; justify-content: space-between;
+      border-radius: var(--radius-xl) var(--radius-xl) 0 0;  /* keep top corners rounded */
+    }
+    .item-badge {
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--gold-alpha-12); border: 1px solid var(--gold-alpha-20);
+      color: var(--gold); font-size: 12px; font-weight: 700;
+      font-family: 'JetBrains Mono', monospace;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .item-body { padding: 18px; }
+
+    /* ── ITEM SHIFT INLINE ──
+       Changed from 3-col grid (auto 1fr 1fr) to a vertical stack so the
+       time pickers can use the full-size design identical to Report Details. */
+    .item-shift-row {
+      display: flex; flex-direction: column; gap: 12px;
+      margin-bottom: 14px;
+    }
+    .item-shift-row .item-shift-top {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .item-shift-row .item-shift-times {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
+    }
+    @media (max-width: 480px) {
+      .item-shift-row .item-shift-times { grid-template-columns: 1fr; }
+    }
+
+    .item-shift-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 12px; border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      background: rgba(255,255,255,0.02);
+      color: var(--text-secondary);
+      font-size: 12px; font-weight: 600; letter-spacing: 0.02em;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.2s;
+      min-width: 90px; justify-content: center;
+    }
+    .item-shift-badge.morning { border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.06); color: #fbbf24; }
+    .item-shift-badge.day     { border-color: var(--gold-alpha-20); background: var(--gold-alpha-08); color: var(--gold); }
+    .item-shift-badge.night   { border-color: rgba(129,140,248,0.3); background: rgba(99,102,241,0.08); color: #a5b4fc; }
+
+    .item-shift-dur-wrap { display: none; }
+    .item-shift-dur {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 5px 10px; border-radius: 6px;
+      border: 1px solid rgba(201,168,76,0.12);
+      background: rgba(201,168,76,0.04);
+      color: rgba(201,168,76,0.7);
+      font-size: 11px; font-weight: 600; font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ── PROGRESS ── */
+    .progress-wrap { width: 100%; }
+    .progress-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+    .progress-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px; font-weight: 600; color: var(--gold); line-height: 1;
+    }
+    .progress-added-badge {
+      font-size: 11px; font-weight: 600;
+      padding: 3px 8px; border-radius: 6px;
+      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.2);
+      color: #4ade80;
+    }
+    .progress-track-wrap { position: relative; height: 24px; display: flex; align-items: center; }
+    .progress-track {
+      position: relative; width: 100%; height: 6px;
+      border-radius: 99px; background: rgba(255,255,255,0.07); overflow: hidden;
+    }
+    .progress-fill {
+      position: absolute; left: 0; top: 0; height: 100%; width: 0%;
+      border-radius: 99px;
+      background: linear-gradient(90deg, #c9a84c 0%, #e2c97e 100%);
+      transition: width 0.15s ease;
+    }
+    .progress-range {
+      -webkit-appearance: none; appearance: none;
+      position: absolute; inset: 0; width: 100%; height: 24px; margin: 0;
+      background: transparent; cursor: pointer; z-index: 3;
+    }
+    .progress-range:focus { outline: none; }
+    .progress-range::-webkit-slider-runnable-track { height: 6px; background: transparent; border-radius: 99px; }
+    .progress-range::-moz-range-track { height: 6px; background: transparent; border-radius: 99px; }
+    .progress-range::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 20px; height: 20px; margin-top: -7px;
+      border-radius: 50%; background: #d7b45a;
+      border: 2.5px solid #06080f;
+      box-shadow: 0 2px 12px rgba(201,168,76,0.4);
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+    .progress-range::-webkit-slider-thumb:hover { transform: scale(1.1); box-shadow: 0 3px 16px rgba(201,168,76,0.55); }
+    .progress-range::-moz-range-thumb {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: #d7b45a; border: 2.5px solid #06080f;
+      box-shadow: 0 2px 12px rgba(201,168,76,0.4);
+    }
+    .last-progress-pill { display: none; margin-top: 7px; }
+    .last-progress-pill span {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 99px;
+      background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.15);
+      color: rgba(226,232,240,0.8); font-size: 10px; font-weight: 600;
+      white-space: nowrap;
+    }
+
+    /* ── LABOR SOURCE MULTI ── */
+    .labor-sources-wrap { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+
+    .source-toggle-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .source-chip {
+      display: flex; align-items: center; gap: 5px;
+      padding: 7px 12px; border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+      background: rgba(255,255,255,0.02);
+      color: var(--text-secondary);
+      font-size: 11px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+      cursor: pointer; transition: all 0.18s; user-select: none;
+    }
+    .source-chip:hover { border-color: var(--gold-alpha-20); color: var(--gold); background: var(--gold-alpha-08); }
+    .source-chip.active-inhouse { border-color: rgba(201,168,76,0.35); background: rgba(201,168,76,0.08); color: var(--gold); }
+    .source-chip.active-supplier { border-color: rgba(96,165,250,0.35); background: rgba(96,165,250,0.07); color: #93c5fd; }
+    .source-chip.active-subcontractor { border-color: rgba(167,139,250,0.35); background: rgba(167,139,250,0.07); color: #c4b5fd; }
+    .source-chip .chip-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .chip-dot.gold { background: var(--gold); }
+    .chip-dot.blue { background: #60a5fa; }
+    .chip-dot.purple { background: #a78bfa; }
+
+    /* Single In-House panel */
+    .source-panel {
+      border-radius: var(--radius-md); overflow: hidden;
+      max-height: 0; opacity: 0;
+      transition: max-height 0.35s ease, opacity 0.25s ease;
+    }
+    .source-panel.visible { max-height: 600px; opacity: 1; }
+    .source-panel-inner { padding: 12px; }
+    .source-panel.inhouse { border: 1px solid rgba(201,168,76,0.15); background: rgba(201,168,76,0.025); }
+
+    .source-panel-hdr { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+    .source-panel-label { font-size: 10px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase; }
+    .source-panel-label.gold   { color: rgba(201,168,76,0.8); }
+    .source-panel-label.blue   { color: rgba(147,197,253,0.8); }
+    .source-panel-label.purple { color: rgba(196,181,253,0.8); }
+
+    /* Multi-entry list (Supplier / Subcontractor) */
+    .src-entries-list { display: flex; flex-direction: column; gap: 8px; margin-top: 2px; }
+    .src-entry {
+      border-radius: var(--radius-md); overflow: hidden;
+      border: 1px solid rgba(96,165,250,0.15); background: rgba(96,165,250,0.03);
+      animation: entryIn 0.22s ease;
+    }
+    .src-entry.sub-entry { border-color: rgba(167,139,250,0.15); background: rgba(167,139,250,0.025); }
+    @keyframes entryIn { from { opacity:0; transform:translateY(-6px); } to { opacity:1; transform:none; } }
+    .src-entry-hdr {
+      display: flex; align-items: center; gap: 6px; padding: 8px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.05); cursor: default;
+    }
+    .src-entry-label { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; flex: 1; }
+    .src-entry-total { font-size: 11px; font-weight: 700; color: #93c5fd; }
+    .src-entry.sub-entry .src-entry-total { color: #c4b5fd; }
+    .src-entry-remove {
+      background: none; border: none; cursor: pointer; padding: 2px 4px; border-radius: 4px;
+      color: rgba(248,113,113,0.5); transition: color .15s, background .15s; line-height: 1;
+    }
+    .src-entry-remove:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+    .src-entry-body { padding: 10px 12px; }
+    .src-add-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 12px; border-radius: 7px; border: 1px dashed rgba(96,165,250,0.3);
+      background: transparent; color: #93c5fd; font-size: 11px; font-weight: 600;
+      cursor: pointer; transition: all .18s; width: 100%; justify-content: center; margin-top: 2px;
+    }
+    .src-add-btn.sub-add { border-color: rgba(167,139,250,0.3); color: #c4b5fd; }
+    .src-add-btn:hover { background: rgba(96,165,250,0.07); border-color: rgba(96,165,250,0.5); }
+    .src-add-btn.sub-add:hover { background: rgba(167,139,250,0.07); border-color: rgba(167,139,250,0.5); }
+    .src-section { display: none; flex-direction: column; gap: 6px; }
+    .src-section.visible { display: flex; }
+
+    /* ── MANPOWER ── */
+    .mp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+    @media (max-width: 400px) { .mp-grid { grid-template-columns: repeat(3, 1fr); } }
+
+    .mp-cell { display: flex; flex-direction: column; gap: 4px; }
+    .mp-input {
+      width: 100%; background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07); border-radius: 8px;
+      padding: 7px 8px; font-size: 13px; color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace; text-align: center;
+      outline: none; transition: all 0.2s; -webkit-appearance: none; appearance: none;
+    }
+    .mp-input:focus { border-color: rgba(201,168,76,0.35); background: rgba(201,168,76,0.04); box-shadow: 0 0 0 2px rgba(201,168,76,0.05); }
+    .mp-input::placeholder { color: rgba(148,163,184,0.3); }
+    .mp-lbl { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); text-align: center; line-height: 1.2; }
+
+    .mp-footer { display: flex; align-items: center; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); margin-top: 6px; }
+    .mp-footer-lbl { font-size: 10px; color: var(--text-muted); }
+    .mp-footer-val { font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 600; color: var(--gold); }
+
+    /* ──────────────────────────────────────────────
+       TIME PICKER — UNIFIED DESIGN
+       Both Report Details and Work Items now share
+       the exact same sizing, padding, and chip layout.
+       ────────────────────────────────────────────── */
+    .time-picker { position: relative; }
+    .time-display {
+      width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      background: rgba(255,255,255,0.03); border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md); padding: 11px 14px;
+      color: var(--text-primary); transition: all 0.2s; cursor: pointer;
+    }
+    .time-display:hover { border-color: var(--gold-alpha-20); background: rgba(255,255,255,0.04); }
+    .time-picker.open .time-display { border-color: rgba(201,168,76,0.45); background: rgba(201,168,76,0.03); box-shadow: 0 0 0 3px rgba(201,168,76,0.07); }
+    .time-display-value { font-size: 14px; font-weight: 500; }
+    .time-display.empty .time-display-value { color: rgba(148,163,184,0.35); font-weight: 400; }
+
+    .time-panel {
+      position: absolute; top: calc(100% + 8px); left: 0; width: 100%; z-index: 999;
+      padding: 14px; border-radius: var(--radius-lg);
+      border: 1px solid rgba(201,168,76,0.15);
+      background: linear-gradient(145deg, rgba(13,21,40,0.99), rgba(9,14,27,0.99));
+      backdrop-filter: blur(24px); box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.03);
+    }
+    .time-panel.hidden { display: none; }
+
+    /* Unified chip grid — always 4 columns regardless of context */
+    .time-quick {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px; margin-bottom: 12px;
+    }
+
+    .time-chip {
+      padding: 8px 4px; border-radius: 8px;
+      border: 1px solid rgba(201,168,76,0.1); background: rgba(255,255,255,0.025);
+      color: rgba(226,232,240,0.8); font-size: 11px; font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      transition: all 0.18s; cursor: pointer; text-align: center;
+      white-space: nowrap; overflow: hidden; line-height: 1.3;
+    }
+    .time-chip:hover {
+      border-color: rgba(201,168,76,0.5);
+      background: rgba(201,168,76,0.12);
+      color: var(--gold);
+      transform: translateY(-1px);
+    }
+    .time-chip:active { transform: scale(0.96); }
+
+    /* Unified selectors layout */
+    .time-selectors {
+      display: grid;
+      grid-template-columns: minmax(52px,1fr) auto minmax(64px,1fr) minmax(72px,70px);
+      gap: 6px; align-items: center; margin-bottom: 10px;
+    }
+    .time-sep { color: var(--gold); font-weight: 700; font-size: 16px; text-align: center; }
+
+    .time-panel .field-input {
+      padding-left: 8px; padding-right: 24px;
+      font-size: 13px;
+      min-width: 0;
+    }
+
+    .time-actions { display: flex; gap: 8px; }
+    .time-action-btn {
+      flex: 1; padding: 9px 10px; border-radius: 9px;
+      font-size: 11px; font-weight: 700; transition: all 0.18s; cursor: pointer;
+    }
+    .time-action-btn.clear { border: 1px solid rgba(239,68,68,0.15); background: rgba(239,68,68,0.05); color: #f87171; }
+    .time-action-btn.apply { border: 1px solid rgba(201,168,76,0.2); background: rgba(201,168,76,0.1); color: var(--gold); }
+    .time-action-btn.apply:hover { background: rgba(201,168,76,0.18); }
+    .time-action-btn.clear:hover { background: rgba(239,68,68,0.1); }
+
+    /* Mobile: keep panel full-width for small screens */
+    @media (max-width: 640px) {
+      .time-panel {
+        width: max-content;
+        min-width: 280px;
+        max-width: min(92vw, 320px);
+      }
+    }
+
+    /* ── ADD / REMOVE BUTTONS ── */
+    .add-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 16px; border-radius: var(--radius-md);
+      border: 1px solid rgba(201,168,76,0.25);
+      background: rgba(201,168,76,0.07); color: var(--gold);
+      font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+      cursor: pointer; transition: all 0.22s;
+    }
+    .add-btn:hover:not(:disabled) { background: rgba(201,168,76,0.13); border-color: rgba(201,168,76,0.4); box-shadow: 0 2px 14px rgba(201,168,76,0.1); }
+    .add-btn:active:not(:disabled) { transform: scale(0.97); }
+    .add-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .remove-btn {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 5px 9px; border-radius: 7px;
+      border: 1px solid rgba(239,68,68,0.12); background: rgba(239,68,68,0.05);
+      color: #f87171; font-size: 11px; font-weight: 600; font-family: 'DM Sans', sans-serif;
+      cursor: pointer; transition: all 0.18s;
+    }
+    .remove-btn:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.25); }
+
+    /* ── SUBMIT ── */
+    .submit-btn {
+      position: relative; overflow: hidden;
+      width: 100%; padding: 17px;
+      border: none; border-radius: var(--radius-lg);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px; font-weight: 700; letter-spacing: 0.02em;
+      color: #07090e;
+      background: linear-gradient(135deg, #c9a84c 0%, #e2c97e 45%, #d4b05a 75%, #c9a84c 100%);
+      background-size: 200% 200%;
+      cursor: pointer; transition: all 0.3s;
+    }
+    .submit-btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .submit-btn:hover { background-position: 100% 100%; box-shadow: 0 8px 36px rgba(201,168,76,0.22), 0 2px 8px rgba(201,168,76,0.18); transform: translateY(-1px); }
+    .submit-btn:active { transform: translateY(0) scale(0.99); }
+    .submit-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      border: 1px dashed rgba(201,168,76,0.14); border-radius: var(--radius-xl);
+      padding: 48px 20px; text-align: center;
+      background: rgba(201,168,76,0.015);
+    }
+    .empty-icon {
+      width: 52px; height: 52px; margin: 0 auto 14px; border-radius: 14px;
+      background: rgba(201,168,76,0.07); border: 1px solid rgba(201,168,76,0.12);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* ── PROJECT PROMPT STATE ── */
+    .project-prompt {
+      border: 1px dashed rgba(96,165,250,0.25); border-radius: var(--radius-xl);
+      padding: 32px 20px; text-align: center;
+      background: rgba(96,165,250,0.03);
+    }
+    .project-prompt-icon {
+      width: 44px; height: 44px; margin: 0 auto 12px; border-radius: 12px;
+      background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.18);
+      display: flex; align-items: center; justify-content: center;
+      color: #93c5fd;
+    }
+    .project-prompt-title { font-size: 13px; font-weight: 600; color: #cbd5e1; margin-bottom: 4px; }
+    .project-prompt-subtitle { font-size: 11px; color: var(--text-muted); }
+
+    /* ── BANNERS ── */
+    .banner-success { background: rgba(34,197,94,0.07); border: 1px solid rgba(34,197,94,0.18); color: #4ade80; }
+    .banner-error   { background: rgba(239,68,68,0.07);  border: 1px solid rgba(239,68,68,0.18);  color: #f87171; }
+    .banner-info    { background: rgba(96,165,250,0.07); border: 1px solid rgba(96,165,250,0.18); color: #93c5fd; }
+
+    /* ── FADE IN ── */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .afu { animation: fadeUp 0.45s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+    /* ── GRID HELPERS ── */
+    @media (max-width: 480px) {
+      .col2 { grid-template-columns: 1fr !important; }
+      .field-input { font-size: 16px; }
+    }
+
+    /* ── FIELD ERROR STATE ── */
+    .field-error {
+      border-color: rgba(239,68,68,0.5) !important;
+      box-shadow: 0 0 0 3px rgba(239,68,68,0.08) !important;
+    }
+    .field-error-msg {
+      font-size: 11px; color: #f87171; margin-top: 5px;
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    /* Align panel to the right if it's in the last column (avoid overflow) */
+    .time-picker.align-right .time-panel {
+      left: auto;
+      right: 0;
+    }
+  </style>
+  <script src="/js/theme.js"></script>
+</head>
+<body class="bg-brand-950 text-gray-200 font-sans min-h-screen relative">
+  <div class="page-bg"></div>
+
+  <%- include('../partials/navbar') %>
+
+  <main class="relative z-10 pt-20 pb-20 px-4">
+    <div class="max-w-[560px] mx-auto">
+
+      <!-- PAGE HEADER -->
+      <div class="mb-8 afu" style="animation-delay:.05s">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-gold-glow border border-brand-gold-border flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-brand-gold" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clip-rule="evenodd"/>
+            </svg>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-white leading-tight">Daily Site Report</h1>
+            <p class="text-[11px] text-gray-500 font-medium tracking-widest uppercase mt-0.5">Agile Prime General Contracting</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- BANNER -->
+      <div id="msg-banner" class="hidden mb-5 rounded-xl px-4 py-3 text-sm font-medium"></div>
+
+      <form id="reportForm" novalidate>
+
+        <!-- ── SECTION 1: REPORT DETAILS ── -->
+        <div class="section-card mb-5 afu" style="animation-delay:.1s">
+          <div class="section-card-header">
+            <div class="section-icon">
+              <svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>
+              </svg>
+            </div>
+            <div>
+              <div class="section-title">Report Details</div>
+              <div class="section-subtitle">Date, engineer, and project info</div>
+            </div>
+          </div>
+          <div class="section-card-body space-y-4">
+
+            <!-- Row 1: Date + Engineer -->
+            <div class="grid grid-cols-2 col2 gap-3">
+              <div class="field-group">
+                <label class="field-label">Date <span class="req"></span></label>
+                <input type="date" id="reportDate" name="date" value="<%= today %>" required class="field-input">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Engineer <span class="req"></span></label>
+                <% if (lockedEngineer) { %>
+                  <input type="hidden" id="reportEngineer" name="engineer" value="<%= lockedEngineer._id %>">
+                  <div class="field-input locked-field">
+                    <svg class="w-3.5 h-3.5 inline mr-1 text-gold opacity-70" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <%= lockedEngineer.name %>
+                    <svg class="w-3 h-3 inline ml-1 opacity-40" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  </div>
+                <% } else { %>
+                <select id="reportEngineer" name="engineer" required class="field-input" style="background-color:#0d1528;color:#e2e8f0">
+                  <option value="">Select engineer</option>
+                  <% engineers.forEach(e => { %>
+                  <option value="<%= e._id %>"><%= e.name %></option>
+                  <% }) %>
+                </select>
+                <% } %>
+              </div>
+            </div>
+
+            <!-- Row 2: Project -->
+            <div class="field-group">
+              <label class="field-label">Project / Site <span class="req"></span></label>
+              <select id="reportSite" name="site" required class="field-input" style="background-color:#0d1528;color:#e2e8f0">
+                <option value="">Select project</option>
+                <% projects.forEach(p => { %>
+                <option value="<%= p._id %>"><%= p.name %></option>
+                <% }) %>
+              </select>
+              <p class="text-[10px] text-gray-500 mt-2 flex items-center gap-1">
+                <svg class="w-3 h-3 text-brand-gold/60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                Elements and Levels will be loaded based on the selected project
+              </p>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Row 3: Shift + Duration -->
+            <div class="grid grid-cols-2 col2 gap-3">
+              <div class="field-group">
+                <label class="field-label">Shift</label>
+                <div id="reportShiftBadge" class="shift-btn" style="cursor:default;pointer-events:none;justify-content:center;gap:6px;">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  <span id="reportShiftLabel">— select start time</span>
+                </div>
+                <input type="hidden" name="shiftType" id="reportShiftType" value="Day">
+              </div>
+              <div class="field-group">
+                <label class="field-label">Duration</label>
+                <div class="duration-badge">
+                  <svg class="dur-icon w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                  <span id="durationText">—</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Row 4: Start / End Time -->
+            <div class="grid grid-cols-2 col2 gap-3">
+              <div class="field-group">
+                <label class="field-label">Start Time <span class="req"></span></label>
+                <div class="time-picker" data-target="startTime">
+                  <input type="hidden" id="startTime" name="startTime" required>
+                  <button type="button" class="time-display empty">
+                    <span class="time-display-value">Select start time</span>
+                    <svg class="w-3.5 h-3.5 text-brand-gold/60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                  </button>
+                  <div class="time-panel hidden">
+                    <div class="time-quick">
+                      <button type="button" class="time-chip" data-time="07:00">7:00 AM</button>
+                      <button type="button" class="time-chip" data-time="08:00">8:00 AM</button>
+                      <button type="button" class="time-chip" data-time="09:00">9:00 AM</button>
+                      <button type="button" class="time-chip" data-time="10:00">10:00 AM</button>
+                    </div>
+                    <div class="time-selectors">
+                      <select class="field-input time-hour" style="background-color:#0d1528;color:#e2e8f0"><option value="">H</option></select>
+                      <span class="time-sep">:</span>
+                      <select class="field-input time-minute" style="background-color:#0d1528;color:#e2e8f0">
+                        <option value="">MM</option><option value="00">00</option>
+                        <option value="15">15</option><option value="30">30</option><option value="45">45</option>
+                      </select>
+                      <select class="field-input time-period" style="background-color:#0d1528;color:#e2e8f0"><option value="">—</option><option value="AM">AM</option><option value="PM">PM</option></select>
+                    </div>
+                    <div class="time-actions">
+                      <button type="button" class="time-action-btn clear">Clear</button>
+                      <button type="button" class="time-action-btn apply">Apply</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="field-group">
+                <label class="field-label">End Time <span class="req"></span></label>
+                <div class="time-picker align-right" data-target="endTime">
+                  <input type="hidden" id="endTime" name="endTime" required>
+                  <button type="button" class="time-display empty">
+                    <span class="time-display-value">Select end time</span>
+                    <svg class="w-3.5 h-3.5 text-brand-gold/60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+                  </button>
+                  <div class="time-panel hidden">
+                    <div class="time-quick">
+                      <button type="button" class="time-chip" data-time="17:00">5:00 PM</button>
+                      <button type="button" class="time-chip" data-time="18:00">6:00 PM</button>
+                      <button type="button" class="time-chip" data-time="19:00">7:00 PM</button>
+                      <button type="button" class="time-chip" data-time="20:00">8:00 PM</button>
+                    </div>
+                    <div class="time-selectors">
+                      <select class="field-input time-hour" style="background-color:#0d1528;color:#e2e8f0"><option value="">H</option></select>
+                      <span class="time-sep">:</span>
+                      <select class="field-input time-minute" style="background-color:#0d1528;color:#e2e8f0">
+                        <option value="">MM</option><option value="00">00</option>
+                        <option value="15">15</option><option value="30">30</option><option value="45">45</option>
+                      </select>
+                      <select class="field-input time-period" style="background-color:#0d1528;color:#e2e8f0"><option value="">—</option><option value="AM">AM</option><option value="PM">PM</option></select>
+                    </div>
+                    <div class="time-actions">
+                      <button type="button" class="time-action-btn clear">Clear</button>
+                      <button type="button" class="time-action-btn apply">Apply</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Comments -->
+            <div class="space-y-3">
+              <div class="field-group">
+                <label class="field-label">Plans for Tomorrow</label>
+                <textarea id="generalComment" name="generalComment" rows="2" class="field-input" placeholder="Overall site comment..."></textarea>
+              </div>
+              <div class="field-group">
+                <label class="field-label">Delays / Issues</label>
+                <textarea id="generalDelays" name="generalDelays" rows="2" class="field-input" placeholder="Any delays or issues..."></textarea>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── SECTION 2: WORK ITEMS ── -->
+        <div class="afu" style="animation-delay:.15s">
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div class="section-icon">
+                <svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+              </div>
+              <div>
+                <div class="section-title">Work Items</div>
+                <div class="section-subtitle text-[11px] text-gray-500">Activities performed on site</div>
+              </div>
+            </div>
+            <button type="button" id="addItemBtn" class="add-btn" disabled title="Select a project first">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
+              Add Item
+            </button>
+          </div>
+
+          <!-- Project prompt (shown when no project is selected) -->
+          <div id="projectPromptMsg" class="project-prompt mb-5">
+            <div class="project-prompt-icon">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+              </svg>
+            </div>
+            <p class="project-prompt-title">Select a project to begin</p>
+            <p class="project-prompt-subtitle">Elements and levels depend on the chosen project</p>
+          </div>
+
+          <div id="workItemsContainer" class="space-y-4"></div>
+
+          <div id="noItemsMsg" class="empty-state mb-5" style="display:none">
+            <div class="empty-icon">
+              <svg class="w-5 h-5 text-brand-gold/40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z"/>
+              </svg>
+            </div>
+            <p class="text-sm text-gray-400 mb-1.5 font-medium">No work items yet</p>
+            <p class="text-xs text-gray-600">Tap <span class="text-brand-gold font-semibold">+ Add Item</span> to start logging</p>
+          </div>
+        </div>
+
+        <!-- ── SUBMIT ── -->
+        <div class="mt-6 afu" style="animation-delay:.2s">
+          <button type="submit" id="submitBtn" class="submit-btn" aria-label="Submit daily site report">
+            <span class="relative z-10 flex items-center justify-center gap-2" id="submitBtnContent">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              Submit Report
+            </span>
+            <span class="relative z-10 hidden items-center justify-center gap-2" id="submitBtnLoading">
+              <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/></svg>
+              Submitting…
+            </span>
+          </button>
+          <p class="text-center text-[10px] text-gray-600 mt-3 tracking-widest uppercase">All required fields must be completed</p>
+        </div>
+
+      </form>
+    </div>
+  </main>
+
+  <!-- MASTER DATA -->
+  <script>
+    window.__MASTER = {
+      activities:            <%- JSON.stringify(activities.map(a => a.name)) %>,
+      laborSourceTypes:      <%- JSON.stringify(laborSourceTypes.map(l => l.name)) %>,
+      supplierCompanies:     <%- JSON.stringify(supplierCompanies.map(c => c.name)) %>,
+      subcontractorCompanies:<%- JSON.stringify(subcontractorCompanies.map(c => c.name)) %>,
+    };
+    // Project-scoped data (populated when a project is selected)
+    let projectElements = [];
+    let projectLevels   = [];
+  </script>
+
+  <script>
+  (function() {
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+
+    /* ── 12h time helpers ── */
+    window.format12 = function(time24) {
+      if (!time24) return '';
+      const parts = time24.split(':');
+      const hh = Number(parts[0]), mm = Number(parts[1] || 0);
+      const suffix = hh >= 12 ? 'PM' : 'AM';
+      const hour12 = hh % 12 || 12;
+      return `${hour12}:${String(mm).padStart(2,'0')} ${suffix}`;
+    };
+    window.to24 = function(h12, mm, period) {
+      let h = parseInt(h12, 10);
+      if (period === 'PM' && h !== 12) h += 12;
+      if (period === 'AM' && h === 12) h = 0;
+      return `${String(h).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+    };
+    const format12 = window.format12;
+    const to24     = window.to24;
+
+    const container       = $('#workItemsContainer');
+    const noItemsMsg      = $('#noItemsMsg');
+    const projectPromptMsg = $('#projectPromptMsg');
+    const addBtn          = $('#addItemBtn');
+    const siteSelect      = $('#reportSite');
+    const form            = $('#reportForm');
+    const submitBtn       = $('#submitBtn');
+    const banner          = $('#msg-banner');
+
+    let itemCounter   = 0;
+    let currentFetchId = 0;  // race-condition guard for concurrent project switches
+
+    /* ── Banner ── */
+    function showBanner(type, msg) {
+      banner.className = 'mb-5 rounded-xl px-4 py-3.5 text-sm font-medium banner-' + type;
+      banner.textContent = msg;
+      banner.classList.remove('hidden');
+      banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      if (type === 'success' || type === 'info') setTimeout(() => banner.classList.add('hidden'), 6000);
+    }
+    function hideBanner() { banner.classList.add('hidden'); }
+
+    /* ── Shift Auto-Detect (report level) ── */
+    (function initShift() {
+      const badge  = $('#reportShiftBadge');
+      const hidden = $('#reportShiftType');
+      const ICONS = {
+        Morning: '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07-.71.71M6.34 17.66l-.71.71M17.66 17.66l.71.71M6.34 6.34l-.71-.71M12 7a5 5 0 100 10A5 5 0 0012 7z"/></svg>',
+        Day:     '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>',
+        Night:   '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+      };
+      function detectShift(t) {
+        if (!t) return null;
+        const h = parseInt(t.split(':')[0], 10);
+        if (h >= 5  && h <= 10) return 'Morning';
+        if (h >= 11 && h <= 13) return 'Day';
+        if (h >= 16 && h <= 23) return 'Night';
+        return 'Day';
+      }
+      function updateBadge(t) {
+        const shift = detectShift(t);
+        if (!shift) {
+          badge.className = 'shift-btn';
+          badge.style.cssText = 'cursor:default;pointer-events:none;justify-content:center;gap:6px;opacity:0.5;';
+          badge.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span>— select start time</span>';
+          hidden.value = 'Day'; return;
+        }
+        const colors = {
+          Morning: 'border-color:rgba(251,191,36,0.4);background:rgba(251,191,36,0.08);color:#fbbf24;',
+          Day:     'border-color:var(--gold-alpha-20);background:var(--gold-alpha-08);color:var(--gold);',
+          Night:   'border-color:rgba(129,140,248,0.4);background:rgba(99,102,241,0.1);color:#a5b4fc;',
+        };
+        badge.className = 'shift-btn active';
+        badge.style.cssText = 'cursor:default;pointer-events:none;justify-content:center;gap:6px;' + colors[shift];
+        badge.innerHTML = ICONS[shift] + '<span>' + shift + '</span>';
+        hidden.value = shift;
+      }
+      window.onReportStartTimeChange = updateBadge;
+      updateBadge('');
+    })();
+
+    /* ── Duration Auto-Compute ── */
+    (function initDuration() {
+      const startEl = $('#startTime');
+      const endEl   = $('#endTime');
+      const badge   = $('#durationText');
+      function compute() {
+        const s = startEl.value, e = endEl.value;
+        if (!s || !e) { badge.textContent = '—'; return; }
+        const toMins = t => { const [h, m] = t.split(':').map(Number); return h * 60 + (m || 0); };
+        let diff = toMins(e) - toMins(s);
+        if (diff < 0) diff += 1440;
+        const h = Math.floor(diff / 60), m = diff % 60;
+        badge.textContent = m > 0 ? h + 'h ' + m + 'm' : h + 'h';
+      }
+      window.updateMainDuration = compute;
+      window.addEventListener('load', () => { startEl.value = ''; endEl.value = ''; badge.textContent = '—'; });
+    })();
+
+    /* ── Option builders ── */
+    function opts(arr, placeholder) {
+      return '<option value="">' + placeholder + '</option>' +
+        arr.map(v => '<option value="' + v + '">' + v + '</option>').join('');
+    }
+    function elementOpts() {
+      if (!siteSelect.value) {
+        return '<option value="">Select project first</option>';
+      }
+      if (projectElements.length === 0) {
+        return '<option value="">No elements available for this project</option>';
+      }
+      return '<option value="">Select element</option>' +
+        projectElements.map(e => '<option value="' + e.name + '">' + e.name + '</option>').join('');
+    }
+    function levelOpts() {
+      if (!siteSelect.value) {
+        return '<option value="">Select project first</option>';
+      }
+      if (projectLevels.length === 0) {
+        return '<option value="">No levels available for this project</option>';
+      }
+      return '<option value="">Select level</option>' +
+        projectLevels.map(l => '<option value="' + l.name + '">' + l.name + '</option>').join('');
+    }
+
+    /* ── Visibility helpers ── */
+    function updateVisibility() {
+      const hasItems = container.children.length > 0;
+      const hasProject = !!siteSelect.value;
+
+      if (!hasProject) {
+        projectPromptMsg.style.display = 'block';
+        noItemsMsg.style.display = 'none';
+      } else {
+        projectPromptMsg.style.display = 'none';
+        noItemsMsg.style.display = hasItems ? 'none' : 'block';
+      }
+    }
+    function renumberItems() {
+      container.querySelectorAll('.work-item-card').forEach((card, i) => {
+        const n = i + 1;
+        const b = card.querySelector('.item-badge');
+        const t = card.querySelector('.item-title');
+        if (b) b.textContent = n;
+        if (t) t.textContent = 'Work Item ' + n;
+      });
+    }
+
+    /* ── Add / Disable Add button ── */
+    function enableAddButton() {
+      addBtn.disabled = false;
+      addBtn.title = 'Add a new work item';
+    }
+    function disableAddButton(reason) {
+      addBtn.disabled = true;
+      addBtn.title = reason || 'Select a project first';
+    }
+
+    /* ── Loading state for element/level selects ── */
+    function setSelectsLoading() {
+      $$('.item-element, .level-select').forEach(sel => {
+        sel.disabled = true;
+        sel.innerHTML = '<option value="">Loading…</option>';
+        sel.classList.add('loading');
+      });
+    }
+    function clearSelectsLoading() {
+      $$('.item-element, .level-select').forEach(sel => sel.classList.remove('loading'));
+    }
+
+    /* ── Reset dropdowns when no project is selected ── */
+    function resetProjectDropdowns() {
+      projectLevels   = [];
+      projectElements = [];
+      $$('.item-element').forEach(sel => {
+        sel.innerHTML = '<option value="">Select project first</option>';
+        sel.disabled = true;
+        sel.classList.remove('loading');
+      });
+      $$('.level-select').forEach(sel => {
+        sel.innerHTML = '<option value="">Select project first</option>';
+        sel.disabled = true;
+        sel.classList.remove('loading');
+      });
+      disableAddButton('Select a project first');
+      updateVisibility();
+    }
+
+    /* ── Fetch project levels + elements (with race-condition guard) ── */
+    siteSelect.addEventListener('change', function() {
+      const projectId = this.value;
+
+      if (!projectId) {
+        resetProjectDropdowns();
+        hideBanner();
+        return;
+      }
+
+      const fetchId = ++currentFetchId;
+
+      // Show loading state
+      setSelectsLoading();
+      hideBanner();
+
+      Promise.all([
+        fetch('/api/projects/' + projectId + '/levels').then(r => r.json()),
+        fetch('/api/projects/' + projectId + '/elements').then(r => r.json()),
+      ]).then(([levelsData, elementsData]) => {
+        // Ignore if a newer fetch has started
+        if (fetchId !== currentFetchId) return;
+
+        projectLevels   = (levelsData.success   && Array.isArray(levelsData.levels))     ? levelsData.levels     : [];
+        projectElements = (elementsData.success && Array.isArray(elementsData.elements)) ? elementsData.elements : [];
+
+        clearSelectsLoading();
+
+        // Update all Element selects
+        $$('.item-element').forEach(sel => {
+          const prev = sel.value;
+          sel.innerHTML = elementOpts();
+          sel.disabled = projectElements.length === 0;
+          // Restore previous value if still valid in the new project
+          if (prev && projectElements.some(e => e.name === prev)) {
+            sel.value = prev;
+          }
+        });
+
+        // Update all Level selects
+        $$('.level-select').forEach(sel => {
+          const prev = sel.value;
+          sel.innerHTML = levelOpts();
+          sel.disabled = projectLevels.length === 0;
+          // Restore previous value if still valid in the new project
+          if (prev && projectLevels.some(l => l.name === prev)) {
+            sel.value = prev;
+          }
+        });
+
+        // Enable / disable the Add Item button based on availability
+        if (projectElements.length > 0 && projectLevels.length > 0) {
+          enableAddButton();
+        } else {
+          disableAddButton('This project is missing elements or levels');
+        }
+
+        // Warn if project has no config
+        if (projectElements.length === 0 || projectLevels.length === 0) {
+          const missing = [];
+          if (projectElements.length === 0) missing.push('elements');
+          if (projectLevels.length   === 0) missing.push('levels');
+          showBanner('error', 'This project has no ' + missing.join(' or ') + ' configured. Please contact admin.');
+        } else {
+          showBanner('info', 'Project loaded: ' + projectElements.length + ' elements, ' + projectLevels.length + ' levels available.');
+        }
+
+        updateVisibility();
+      }).catch(err => {
+        if (fetchId !== currentFetchId) return;
+        console.error('Failed to fetch project data:', err);
+        clearSelectsLoading();
+        showBanner('error', 'Failed to load project data. Please try again or contact support.');
+        resetProjectDropdowns();
+      });
+    });
+
+    /* ── Item Shift binding ── */
+    function detectShiftFromTime(t) {
+      if (!t) return null;
+      const h = parseInt(t.split(':')[0], 10);
+      if (h >= 5  && h <= 10) return 'Morning';
+      if (h >= 11 && h <= 13) return 'Day';
+      if (h >= 16 && h <= 23) return 'Night';
+      return 'Day';
+    }
+    function bindItemShift(card) {
+      const badge   = card.querySelector('.item-shift-badge');
+      const startEl = card.querySelector('.item-start-time');
+      const endEl   = card.querySelector('.item-end-time');
+      const durWrap = card.querySelector('.item-shift-dur-wrap');
+      const durText = card.querySelector('.item-dur-text');
+      const ICONS = {
+        Morning: '<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v1m0 16v1m8.66-9h-1M4.34 12h-1m15.07-6.07-.71.71M6.34 17.66l-.71.71M17.66 17.66l.71.71M6.34 6.34l-.71-.71M12 7a5 5 0 100 10A5 5 0 0012 7z"/></svg>',
+        Day:     '<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>',
+        Night:   '<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>',
+      };
+      const COLORS = { Morning:'morning', Day:'day', Night:'night' };
+      function updateShiftBadge(t) {
+        const shift = detectShiftFromTime(t);
+        badge.className = 'item-shift-badge' + (shift ? ' ' + COLORS[shift] : '');
+        badge.innerHTML = shift
+          ? ICONS[shift] + '<span class="item-shift-label">' + shift + '</span>'
+          : '<svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg><span class="item-shift-label">—</span>';
+      }
+      function toMins(val) {
+        if (!val) return null;
+        const p = val.split(':');
+        return parseInt(p[0],10)*60 + parseInt(p[1]||0,10);
+      }
+      function updateDur() {
+        const s = toMins(startEl.value), e = toMins(endEl.value);
+        if (s !== null && e !== null) {
+          let diff = e - s; if (diff < 0) diff += 1440;
+          const h = Math.floor(diff/60), m = diff%60;
+          const txt = h + 'h' + (m ? ' '+m+'m' : '');
+          if (diff > 0) { durText.textContent = txt; durWrap.style.display = 'block'; }
+          else { durWrap.style.display = 'none'; }
+        } else { durWrap.style.display = 'none'; }
+      }
+      if (startEl) {
+        new MutationObserver(() => { updateShiftBadge(startEl.value); updateDur(); })
+          .observe(startEl, { attributes: true, attributeFilter: ['value'] });
+        startEl.addEventListener('change', () => { updateShiftBadge(startEl.value); updateDur(); });
+      }
+      if (endEl) {
+        endEl.addEventListener('change', updateDur);
+        new MutationObserver(updateDur).observe(endEl, { attributes: true, attributeFilter: ['value'] });
+      }
+      card.onStartTimeSet    = (val) => { updateShiftBadge(val); updateDur(); };
+      card.updateItemDuration = updateDur;
+      updateShiftBadge('');
+    }
+
+    /* ── Labor source multi-toggle ── */
+    function bindLaborSourceToggle(card) {
+      const MP_FIELDS  = ['steelFixer','steelFixerForemen','carpenter','carpenterForemen','helper','scaffolding','engineersNo'];
+      const grandTotal = card.querySelector('.src-grand-total');
+
+      function mkEntryHtml(type, idx) {
+        const isSupplier  = type === 'Supplier';
+        const companies   = isSupplier ? (window.__MASTER.supplierCompanies||[]) : (window.__MASTER.subcontractorCompanies||[]);
+        const cls   = isSupplier ? '' : ' sub-entry';
+        const color = isSupplier ? '#93c5fd' : '#c4b5fd';
+        const label = isSupplier ? 'Supplier' : 'Subcontractor';
+        const optionsHtml = companies.map(c => `<option value="${c}">${c}</option>`).join('');
+        const mpInputs = MP_FIELDS.map(f => {
+          const lbl = {steelFixer:'Steel Fixer',steelFixerForemen:'SF Foremen',carpenter:'Carpenter',carpenterForemen:'Carp FM',helper:'Helper',scaffolding:'Scaffold',engineersNo:'Engineers'}[f];
+          return `<div class="mp-cell"><label class="mp-lbl">${lbl}</label><input type="number" min="0" value="0" class="mp-input entry-mp-input" data-field="${f}"></div>`;
+        }).join('');
+        return `<div class="src-entry${cls}" data-type="${type}" data-idx="${idx}">
+          <div class="src-entry-hdr">
+            <span class="mp-dot" style="width:6px;height:6px;border-radius:50%;flex-shrink:0;background:${isSupplier?'#60a5fa':'#a78bfa'}"></span>
+            <span class="src-entry-label" style="color:${color}">${label} ${idx+1}</span>
+            <span class="src-entry-total" style="color:${color}">0</span>
+            <button type="button" class="src-entry-remove" title="Remove">
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg>
+            </button>
+          </div>
+          <div class="src-entry-body">
+            <div class="grid grid-cols-2 col2 gap-3" style="margin-bottom:10px">
+              <div class="field-group" style="margin:0">
+                <label class="field-label" style="font-size:9px">Company <span class="req"></span></label>
+                <select class="field-input entry-company" style="background-color:#0d1528;color:#e2e8f0;font-size:12px;padding:8px 10px">
+                  <option value="">Select company</option>${optionsHtml}
+                </select>
+              </div>
+              <div class="field-group" style="margin:0">
+                <label class="field-label" style="font-size:9px">Scope Notes</label>
+                <input type="text" class="field-input entry-scope" placeholder="Scope of work" style="font-size:12px;padding:8px 10px">
+              </div>
+            </div>
+            <div class="mp-grid">${mpInputs}</div>
+          </div>
+        </div>`;
+      }
+
+      function refreshGrand() {
+        let total = 0;
+        if (card.querySelector('.src-chip-inhouse')?.classList.contains('active-inhouse')) {
+          let sub = 0;
+          MP_FIELDS.forEach(f => { const el = card.querySelector('.src-ih-'+f); sub += el ? (parseInt(el.value,10)||0) : 0; });
+          const el = card.querySelector('.src-inhouse-total'); if (el) el.textContent = sub;
+          total += sub;
+        }
+        card.querySelectorAll('.src-supplier-list .src-entry').forEach(entry => {
+          let sub = 0; entry.querySelectorAll('.entry-mp-input').forEach(inp => sub += parseInt(inp.value,10)||0);
+          const tot = entry.querySelector('.src-entry-total'); if (tot) tot.textContent = sub; total += sub;
+        });
+        card.querySelectorAll('.src-subcontractor-list .src-entry').forEach(entry => {
+          let sub = 0; entry.querySelectorAll('.entry-mp-input').forEach(inp => sub += parseInt(inp.value,10)||0);
+          const tot = entry.querySelector('.src-entry-total'); if (tot) tot.textContent = sub; total += sub;
+        });
+        if (grandTotal) grandTotal.textContent = total;
+      }
+      function reindexEntries(list, type) {
+        list.querySelectorAll('.src-entry').forEach((entry, i) => {
+          entry.dataset.idx = i;
+          const lbl = entry.querySelector('.src-entry-label');
+          if (lbl) lbl.textContent = type + ' ' + (i+1);
+        });
+      }
+      function addEntry(type) {
+        const listSel = type === 'Supplier' ? '.src-supplier-list' : '.src-subcontractor-list';
+        const list = card.querySelector(listSel); if (!list) return;
+        const idx = list.querySelectorAll('.src-entry').length;
+        const div = document.createElement('div');
+        div.innerHTML = mkEntryHtml(type, idx);
+        const entry = div.firstElementChild;
+        entry.querySelector('.src-entry-remove').addEventListener('click', () => { entry.remove(); reindexEntries(list, type); refreshGrand(); });
+        entry.querySelectorAll('.entry-mp-input').forEach(inp => inp.addEventListener('input', refreshGrand));
+        list.appendChild(entry); refreshGrand();
+      }
+
+      const ihChip  = card.querySelector('.src-chip-inhouse');
+      const ihPanel = card.querySelector('.src-panel-inhouse');
+      ihChip?.addEventListener('click', () => {
+        const isOn = ihChip.classList.contains('active-inhouse');
+        if (isOn) {
+          ihChip.classList.remove('active-inhouse'); ihPanel.classList.remove('visible');
+          MP_FIELDS.forEach(f => { const el = card.querySelector('.src-ih-'+f); if (el) el.value = '0'; });
+          const tot = card.querySelector('.src-inhouse-total'); if (tot) tot.textContent = '0';
+        } else { ihChip.classList.add('active-inhouse'); ihPanel.classList.add('visible'); }
+        refreshGrand();
+      });
+      card.querySelectorAll('.src-panel-inhouse .mp-input').forEach(inp => inp.addEventListener('input', refreshGrand));
+
+      const supChip = card.querySelector('.src-chip-supplier');
+      const supSec  = card.querySelector('.src-section-supplier');
+      supChip?.addEventListener('click', () => {
+        const isOn = supChip.classList.contains('active-supplier');
+        if (isOn) { supChip.classList.remove('active-supplier'); supSec.classList.remove('visible'); card.querySelector('.src-supplier-list').innerHTML = ''; }
+        else { supChip.classList.add('active-supplier'); supSec.classList.add('visible'); if (!card.querySelector('.src-supplier-list').children.length) addEntry('Supplier'); }
+        refreshGrand();
+      });
+      card.querySelector('.src-add-supplier')?.addEventListener('click', () => addEntry('Supplier'));
+
+      const subChip = card.querySelector('.src-chip-subcontractor');
+      const subSec  = card.querySelector('.src-section-subcontractor');
+      subChip?.addEventListener('click', () => {
+        const isOn = subChip.classList.contains('active-subcontractor');
+        if (isOn) { subChip.classList.remove('active-subcontractor'); subSec.classList.remove('visible'); card.querySelector('.src-subcontractor-list').innerHTML = ''; }
+        else { subChip.classList.add('active-subcontractor'); subSec.classList.add('visible'); if (!card.querySelector('.src-subcontractor-list').children.length) addEntry('Subcontractor'); }
+        refreshGrand();
+      });
+      card.querySelector('.src-add-subcontractor')?.addEventListener('click', () => addEntry('Subcontractor'));
+
+      ihChip?.click(); // default: activate In-House
+    }
+
+    /* ── Progress slider ── */
+    function bindProgressSlider(card) {
+      const slider = card.querySelector('.progress-range');
+      const fill   = card.querySelector('.progress-fill');
+      const pct    = card.querySelector('.progress-pct');
+      const added  = card.querySelector('.progress-added-badge');
+      function update() {
+        let previous = Number(slider.dataset.previous || 0);
+        let current  = Number(slider.value || 0);
+        if (current < previous) { current = previous; slider.value = current; }
+        if (current > 100)      { current = 100;       slider.value = current; }
+        const delta = Math.max(0, current - previous);
+        slider.dataset.final = current; slider.dataset.added = delta;
+        fill.style.width = current + '%';
+        pct.textContent  = current + '%';
+        added.textContent = '+' + delta + '%';
+        added.style.display = delta > 0 ? 'inline-flex' : 'none';
+      }
+      slider.setPrevious = function(v) {
+        let p = Math.max(0, Math.min(100, Number(v)||0));
+        slider.dataset.previous = p; slider.min = 0; slider.max = 100; slider.step = 1;
+        slider.value = p; update();
+      };
+      slider.addEventListener('input', update);
+      slider.addEventListener('change', update);
+      slider.setPrevious(0);
+    }
+
+    /* ── Cumulative progress lookup ── */
+    function bindProgressLookup(card) {
+      const elSelect  = card.querySelector('.item-element');
+      const lvlSelect = card.querySelector('.item-level');
+      const actSelect = card.querySelector('.item-activity');
+      const slider    = card.querySelector('.progress-range');
+      const pillWrap  = card.querySelector('.last-progress-pill');
+      const pillText  = card.querySelector('.last-progress-pill span');
+      let timer = null;
+      function checkProgress() {
+        const projectId = siteSelect.value;
+        const element  = elSelect?.value  || '';
+        const level    = lvlSelect?.value || '';
+        const activity = actSelect?.value || '';
+        if (!projectId || !element || !level || !activity) {
+          if (slider.setPrevious) slider.setPrevious(0); pillWrap.style.display = 'none'; return;
+        }
+        const url = '/api/projects/' + projectId + '/last-progress?element=' +
+          encodeURIComponent(element) + '&level=' + encodeURIComponent(level) + '&activity=' + encodeURIComponent(activity);
+        fetch(url).then(r => r.json()).then(data => {
+          if (data.success && data.lastProgress != null) {
+            let lp = Math.max(0, Math.min(100, Number(data.lastProgress)||0));
+            if (slider.setPrevious) slider.setPrevious(lp);
+            const dateStr = data.date ? new Date(data.date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '';
+            pillText.textContent = (lp >= 100 ? 'Previously 100% complete' : 'Previous: ' + lp + '%') + (dateStr ? ' · ' + dateStr : '');
+            pillWrap.style.display = 'block';
+          } else { if (slider.setPrevious) slider.setPrevious(0); pillWrap.style.display = 'none'; }
+        }).catch(() => { if (slider.setPrevious) slider.setPrevious(0); pillWrap.style.display = 'none'; });
+      }
+      function schedule() { clearTimeout(timer); timer = setTimeout(checkProgress, 250); }
+      elSelect.addEventListener('change', schedule);
+      lvlSelect.addEventListener('change', schedule);
+      actSelect.addEventListener('change', schedule);
+    }
+
+    /* ── Time picker template (UNIFIED — same as Report Details) ──
+       Removed the `time-picker-mini` class so work item pickers
+       inherit the full Report Details design.
+       The `alignRight` param is used for the end-time picker so the
+       dropdown panel doesn't overflow on the right side of the card. */
+    function mkTimePicker(cls, chips, placeholder, alignRight) {
+      const chipHTML = chips.map(t => `<button type="button" class="time-chip" data-time="${t}">${format12(t)}</button>`).join('');
+      const alignCls = alignRight ? ' align-right' : '';
+      return `<div class="time-picker${alignCls}" data-target="${cls}">
+        <input type="hidden" class="${cls}">
+        <button type="button" class="time-display empty">
+          <span class="time-display-value">${placeholder}</span>
+          <svg class="w-3.5 h-3.5 text-brand-gold/60" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        </button>
+        <div class="time-panel hidden">
+          <div class="time-quick">${chipHTML}</div>
+          <div class="time-selectors">
+            <select class="field-input time-hour" style="background-color:#0d1528;color:#e2e8f0"><option value="">H</option></select>
+            <span class="time-sep">:</span>
+            <select class="field-input time-minute" style="background-color:#0d1528;color:#e2e8f0">
+              <option value="">MM</option><option value="00">00</option>
+              <option value="15">15</option><option value="30">30</option><option value="45">45</option>
+            </select>
+            <select class="field-input time-period" style="background-color:#0d1528;color:#e2e8f0"><option value="">—</option><option value="AM">AM</option><option value="PM">PM</option></select>
+          </div>
+          <div class="time-actions">
+            <button type="button" class="time-action-btn clear">Clear</button>
+            <button type="button" class="time-action-btn apply">Apply</button>
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function mkMpInput(cls, lbl) {
+      return `<div class="mp-cell"><input type="number" min="0" value="0" class="mp-input ${cls}" placeholder="0"><p class="mp-lbl">${lbl}</p></div>`;
+    }
+
+    /* ── Add work item ── */
+    function addWorkItem() {
+      // Guard: do not allow adding if no project selected or no data loaded
+      if (!siteSelect.value) {
+        showBanner('error', 'Please select a project first before adding work items.');
+        return;
+      }
+      if (projectElements.length === 0 || projectLevels.length === 0) {
+        showBanner('error', 'This project has no elements or levels configured.');
+        return;
+      }
+
+      itemCounter++;
+      const idx  = itemCounter;
+      const card = document.createElement('div');
+      card.className = 'work-item-card';
+      card.setAttribute('data-item-index', idx);
+
+      /* Use unified chip list matching Report Details (4 chips each)
+         so both pickers look exactly the same. */
+      const START_CHIPS = ['07:00','08:00','09:00','10:00'];
+      const END_CHIPS   = ['17:00','18:00','19:00','20:00'];
+
+      card.innerHTML = `
+        <div class="item-header">
+          <div class="flex items-center gap-2.5">
+            <span class="item-badge">${idx}</span>
+            <span class="text-sm font-semibold text-white item-title">Work Item ${idx}</span>
+          </div>
+          <button type="button" class="remove-btn" onclick="confirmRemoveItem(this)">
+            <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+            Remove
+          </button>
+        </div>
+
+        <div class="item-body space-y-4">
+
+          <!-- Shift row: badge on top, time pickers below in 2 columns -->
+          <div class="item-shift-row">
+            <div class="item-shift-top">
+              <label class="field-label" style="margin-bottom:0">Shift</label>
+              <div class="item-shift-badge">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+                <span class="item-shift-label">—</span>
+              </div>
+              <div class="item-shift-dur-wrap" style="margin-left:auto">
+                <span class="item-shift-dur">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span class="item-dur-text"></span>
+                </span>
+              </div>
+            </div>
+            <div class="item-shift-times">
+              <div class="field-group" style="margin:0">
+                <label class="field-label">Start Time <span class="req"></span></label>
+                ${mkTimePicker('item-start-time', START_CHIPS, 'Select start time', false)}
+              </div>
+              <div class="field-group" style="margin:0">
+                <label class="field-label">End Time <span class="req"></span></label>
+                ${mkTimePicker('item-end-time', END_CHIPS, 'Select end time', true)}
+              </div>
+            </div>
+          </div>
+
+          <!-- Element + Level -->
+          <div class="grid grid-cols-2 col2 gap-3">
+            <div class="field-group">
+              <label class="field-label">Element <span class="req"></span></label>
+              <select name="items_element_${idx}" class="field-input item-element" style="background-color:#0d1528;color:#e2e8f0">${elementOpts()}</select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Level <span class="req"></span></label>
+              <select name="items_level_${idx}" class="field-input level-select item-level" style="background-color:#0d1528;color:#e2e8f0">${levelOpts()}</select>
+            </div>
+          </div>
+
+          <!-- Activity + Progress -->
+          <div class="grid grid-cols-2 col2 gap-3">
+            <div class="field-group">
+              <label class="field-label">Activity <span class="req"></span></label>
+              <select name="items_activity_${idx}" class="field-input item-activity" style="background-color:#0d1528;color:#e2e8f0">${opts(window.__MASTER.activities, 'Select activity')}</select>
+            </div>
+            <div class="field-group">
+              <label class="field-label">Progress <span class="req"></span></label>
+              <div class="progress-wrap">
+                <div class="progress-header">
+                  <span class="progress-pct">0%</span>
+                  <span class="progress-added-badge" style="display:none">+0%</span>
+                </div>
+                <div class="progress-track-wrap">
+                  <div class="progress-track"><div class="progress-fill" style="width:0%"></div></div>
+                  <input type="range" min="0" max="100" value="0" step="1" class="progress-range" data-previous="0" data-final="0" data-added="0">
+                </div>
+                <div class="last-progress-pill"><span></span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Labor Sources -->
+          <div class="field-group">
+            <label class="field-label">Labor Sources</label>
+            <div class="labor-sources-wrap">
+              <div class="source-toggle-row">
+                <button type="button" class="source-chip src-chip-inhouse"><span class="chip-dot gold"></span>In-House</button>
+                <button type="button" class="source-chip src-chip-supplier"><span class="chip-dot blue"></span>Supplier</button>
+                <button type="button" class="source-chip src-chip-subcontractor"><span class="chip-dot purple"></span>Subcontractor</button>
+              </div>
+              <!-- In-House panel -->
+              <div class="source-panel inhouse src-panel-inhouse">
+                <div class="source-panel-inner">
+                  <div class="source-panel-hdr">
+                    <span class="mp-dot gold"></span>
+                    <span class="source-panel-label gold">In-House Workers</span>
+                    <span class="mp-footer-val src-inhouse-total" style="margin-left:auto;font-size:11px">0</span>
+                  </div>
+                  <div class="mp-grid">
+                    ${mkMpInput('src-ih-steelFixer','Steel Fixer')}
+                    ${mkMpInput('src-ih-steelFixerForemen','SF Foremen')}
+                    ${mkMpInput('src-ih-carpenter','Carpenter')}
+                    ${mkMpInput('src-ih-carpenterForemen','Carp FM')}
+                    ${mkMpInput('src-ih-helper','Helper')}
+                    ${mkMpInput('src-ih-scaffolding','Scaffold')}
+                    ${mkMpInput('src-ih-engineersNo','Engineers')}
+                  </div>
+                </div>
+              </div>
+              <!-- Supplier -->
+              <div class="src-section src-section-supplier">
+                <div class="src-entries-list src-supplier-list"></div>
+                <button type="button" class="src-add-btn src-add-supplier">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                  Add Supplier
+                </button>
+              </div>
+              <!-- Subcontractor -->
+              <div class="src-section src-section-subcontractor">
+                <div class="src-entries-list src-subcontractor-list"></div>
+                <button type="button" class="src-add-btn sub-add src-add-subcontractor">
+                  <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+                  Add Subcontractor
+                </button>
+              </div>
+              <!-- Grand total -->
+              <div style="display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:4px 2px">
+                <span style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em">Total Workers</span>
+                <span class="mp-footer-val src-grand-total" style="font-size:13px">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Item Comment -->
+          <div class="field-group">
+            <label class="field-label">Item Comment</label>
+            <textarea class="field-input item-comment" rows="2" placeholder="Notes for this work item..."></textarea>
+          </div>
+
+        </div>`;
+
+      container.appendChild(card);
+      updateVisibility();
+      bindLaborSourceToggle(card);
+      bindItemShift(card);
+      bindProgressSlider(card);
+      bindProgressLookup(card);
+      if (window.initCustomTimePickersIn) window.initCustomTimePickersIn(card);
+      setTimeout(() => { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 100);
+    }
+
+    addBtn.addEventListener('click', addWorkItem);
+    document.addEventListener('itemsChanged', () => { renumberItems(); updateVisibility(); });
+
+    /* ── Collect form data ── */
+    function collectFormData() {
+      const normalizeTime = v => {
+        if (!v) return '';
+        const m = v.match(/^(\d{1,2}):(\d{2})(?:\s*(AM|PM))?$/i);
+        if (!m) return v;
+        let h = parseInt(m[1],10); const mn = m[2], period = (m[3]||'').toUpperCase();
+        if (period === 'PM' && h !== 12) h += 12;
+        if (period === 'AM' && h === 12) h = 0;
+        return (h<10?'0':'') + h + ':' + mn;
+      };
+      const data = {
+        date:           $('#reportDate').value,
+        engineer:       $('#reportEngineer').value,
+        site:           $('#reportSite').value,
+        shiftType:      $('#reportShiftType').value || 'Day',
+        startTime:      normalizeTime($('#startTime').value),
+        endTime:        normalizeTime($('#endTime').value),
+        generalComment: $('#generalComment').value.trim(),
+        generalDelays:  $('#generalDelays').value.trim(),
+        items: []
+      };
+      const MP_FIELDS = ['steelFixer','steelFixerForemen','carpenter','carpenterForemen','helper','scaffolding','engineersNo'];
+      container.querySelectorAll('.work-item-card').forEach(card => {
+        const progressSlider = card.querySelector('.progress-range');
+        const sources = [];
+        if (card.querySelector('.src-chip-inhouse')?.classList.contains('active-inhouse')) {
+          const mp = {};
+          MP_FIELDS.forEach(f => { const el = card.querySelector('.src-ih-'+f); mp[f] = el?(parseInt(el.value,10)||0):0; });
+          sources.push({ type:'In-House', companyName:'', scopeNotes:'', manpower:mp });
+        }
+        card.querySelectorAll('.src-supplier-list .src-entry').forEach(entry => {
+          const mp = {}; entry.querySelectorAll('.entry-mp-input').forEach(inp => { mp[inp.dataset.field] = parseInt(inp.value,10)||0; });
+          sources.push({ type:'Supplier', companyName:(entry.querySelector('.entry-company')?.value||'').trim(), scopeNotes:(entry.querySelector('.entry-scope')?.value||'').trim(), manpower:mp });
+        });
+        card.querySelectorAll('.src-subcontractor-list .src-entry').forEach(entry => {
+          const mp = {}; entry.querySelectorAll('.entry-mp-input').forEach(inp => { mp[inp.dataset.field] = parseInt(inp.value,10)||0; });
+          sources.push({ type:'Subcontractor', companyName:(entry.querySelector('.entry-company')?.value||'').trim(), scopeNotes:(entry.querySelector('.entry-scope')?.value||'').trim(), manpower:mp });
+        });
+        const itemStartVal = (card.querySelector('.item-start-time')||{}).value||'';
+        data.items.push({
+          element:     card.querySelector('.item-element').value,
+          level:       card.querySelector('.item-level').value,
+          activity:    card.querySelector('.item-activity').value,
+          progress:    parseInt(progressSlider.dataset.final || progressSlider.value, 10) || 0,
+          itemComment: card.querySelector('.item-comment').value.trim(),
+          shiftType:   detectShiftFromTime(itemStartVal) || 'Day',
+          startTime:   itemStartVal,
+          endTime:     (card.querySelector('.item-end-time')||{}).value||'',
+          sources,
+        });
+      });
+      return data;
+    }
+
+    /* ── Validate ── */
+    function validate(data) {
+      const errors = [];
+      if (!data.date)     errors.push('Date is required');
+      if (!data.engineer) errors.push('Engineer is required');
+      if (!data.site)     errors.push('Project / Site is required');
+      if (data.items.length === 0) errors.push('At least one work item is required');
+
+      // Only validate per-item fields if site is selected
+      if (data.site) {
+        data.items.forEach((item, i) => {
+          const n = i + 1;
+          if (!item.element)  errors.push('Item ' + n + ': Element is required');
+          if (!item.level)    errors.push('Item ' + n + ': Level is required');
+          if (!item.activity) errors.push('Item ' + n + ': Activity is required');
+          if (!item.sources || item.sources.length === 0) errors.push('Item ' + n + ': At least one labor source must be selected');
+          (item.sources||[]).forEach(src => {
+            if ((src.type === 'Supplier' || src.type === 'Subcontractor') && !src.companyName)
+              errors.push('Item ' + n + ': Company name required for ' + src.type);
+          });
+          const cards = container.querySelectorAll('.work-item-card');
+          if (cards[i]) {
+            const slider = cards[i].querySelector('.progress-range');
+            const prev = Number(slider.dataset.previous || 0);
+            const fin  = Number(slider.dataset.final || slider.value || 0);
+            if (fin < prev) errors.push('Item ' + n + ': Progress cannot be less than ' + prev + '% (last recorded)');
+          }
+        });
+      }
+      return errors;
+    }
+
+    /* ── Confirm remove item ── */
+    function confirmRemoveItem(btn) {
+      const card  = btn.closest('.work-item-card');
+      const title = card.querySelector('.item-title')?.textContent || 'this item';
+      if (confirm('Remove ' + title + '?\nThis cannot be undone.')) {
+        card.remove();
+        document.dispatchEvent(new Event('itemsChanged'));
+      }
+    }
+    window.confirmRemoveItem = confirmRemoveItem;
+
+    /* ── Field error highlighting ── */
+    function highlightErrors(errors) {
+      document.querySelectorAll('.field-error').forEach(el => { el.classList.remove('field-error'); el.style.borderColor = ''; });
+      errors.forEach(msg => {
+        const m = msg.match(/Item (\d+)/i);
+        if (m) {
+          const card = document.querySelector('[data-item-index="' + m[1] + '"]');
+          if (card) { card.style.borderColor = 'rgba(239,68,68,0.5)'; card.classList.add('field-error'); }
+        }
+      });
+    }
+
+    /* ── Submit ── */
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      const data   = collectFormData();
+      const errors = validate(data);
+      if (errors.length > 0) { showBanner('error', errors.join(' • ')); highlightErrors(errors); return; }
+
+      submitBtn.disabled = true;
+      $('#submitBtnContent').classList.add('hidden');  $('#submitBtnContent').classList.remove('flex');
+      $('#submitBtnLoading').classList.remove('hidden'); $('#submitBtnLoading').classList.add('flex');
+
+      fetch('/reports', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data) })
+        .then(r => r.json())
+        .then(res => {
+          if (res.success) {
+            showBanner('success', 'Report submitted — ' + res.reportId);
+            form.reset(); container.innerHTML = ''; itemCounter = 0;
+            projectLevels = []; projectElements = [];
+            resetProjectDropdowns();
+            $('#reportDate').value = '<%= today %>';
+            document.querySelectorAll('.field-error').forEach(el => { el.classList.remove('field-error'); el.style.borderColor = ''; });
+          } else {
+            showBanner('error', res.error || (res.errors && res.errors.map(e => e.message).join(' • ')) || 'Submission failed');
+          }
+        })
+        .catch(() => showBanner('error', 'Network error — please try again'))
+        .finally(() => {
+          submitBtn.disabled = false;
+          $('#submitBtnContent').classList.remove('hidden'); $('#submitBtnContent').classList.add('flex');
+          $('#submitBtnLoading').classList.add('hidden');    $('#submitBtnLoading').classList.remove('flex');
+        });
+    });
+
+    /* ── Initial state: no project selected, Add Item disabled, prompt shown ── */
+    resetProjectDropdowns();
+  })();
+  </script>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       TIME PICKER ENGINE
+       Single unified engine — handles both Report Details and
+       Work Items pickers identically.
+       ═══════════════════════════════════════════════════════════ -->
+  <script>
+  (function initCustomTimePickers() {
+
+    /* Build <option> lists once per select */
+    function buildHours(select) {
+      if (!select || select.dataset.built === '1') return;
+      select.innerHTML = '<option value="">H</option>';
+      for (let i = 1; i <= 12; i++) {
+        const opt = document.createElement('option');
+        opt.value = String(i); opt.textContent = String(i);
+        select.appendChild(opt);
+      }
+      select.dataset.built = '1';
+    }
+    function buildPeriod(select) {
+      if (!select || select.dataset.built === '1') return;
+      select.innerHTML = '<option value="">—</option><option value="AM">AM</option><option value="PM">PM</option>';
+      select.dataset.built = '1';
+    }
+
+    function placeholderFor(input) {
+      if (input.id === 'startTime') return 'Select start time';
+      if (input.id === 'endTime')   return 'Select end time';
+      if (input.classList.contains('item-start-time')) return 'Select start time';
+      if (input.classList.contains('item-end-time'))   return 'Select end time';
+      return 'Select time';
+    }
+
+    function closeAllExcept(current) {
+      document.querySelectorAll('.time-picker.open').forEach(el => {
+        if (el !== current) {
+          el.classList.remove('open');
+          const p = el.querySelector('.time-panel');
+          if (p) p.classList.add('hidden');
+        }
+      });
+    }
+
+    function setupPicker(picker) {
+      if (!picker || picker.dataset.ready === '1') return;
+
+      const hiddenInput  = picker.querySelector('input[type="hidden"]');
+      const displayBtn   = picker.querySelector('.time-display');
+      const displayValue = picker.querySelector('.time-display-value');
+      const panel        = picker.querySelector('.time-panel');
+      const hourSelect   = picker.querySelector('.time-hour');
+      const minuteSelect = picker.querySelector('.time-minute');
+      const periodSelect = picker.querySelector('.time-period');
+      const chips        = picker.querySelectorAll('.time-chip');
+      const clearBtn     = picker.querySelector('.time-action-btn.clear');
+      const applyBtn     = picker.querySelector('.time-action-btn.apply');
+
+      /* Ensure selects are populated */
+      buildHours(hourSelect);
+      if (periodSelect) buildPeriod(periodSelect);
+
+      /* ── helpers ── */
+      const format12 = window.format12;
+      const to24     = window.to24;
+
+      function refreshDisplay() {
+        const value = hiddenInput.value;
+        if (!value) {
+          displayValue.textContent = placeholderFor(hiddenInput);
+          displayBtn.classList.add('empty');
+        } else {
+          displayValue.textContent = format12(value);
+          displayBtn.classList.remove('empty');
+        }
+        /* fire upstream callbacks */
+        if (hiddenInput.id === 'startTime' || hiddenInput.id === 'endTime') {
+          if (typeof window.updateMainDuration === 'function') window.updateMainDuration();
+          if (hiddenInput.id === 'startTime' && typeof window.onReportStartTimeChange === 'function')
+            window.onReportStartTimeChange(hiddenInput.value);
+        }
+        const card = picker.closest('.work-item-card');
+        if (card) {
+          if (typeof card.updateItemDuration === 'function') card.updateItemDuration();
+          if (typeof card.onStartTimeSet === 'function' && hiddenInput.classList.contains('item-start-time'))
+            card.onStartTimeSet(hiddenInput.value);
+        }
+      }
+
+      function syncSelectorsFromValue() {
+        const value = hiddenInput.value;
+        if (!value) {
+          hourSelect.value = ''; minuteSelect.value = '';
+          if (periodSelect) periodSelect.value = ''; return;
+        }
+        const parts  = value.split(':');
+        const hh     = parseInt(parts[0], 10);
+        const mm     = parts[1] || '00';
+        const period = hh >= 12 ? 'PM' : 'AM';
+        const h12    = hh % 12 || 12;
+        hourSelect.value   = String(h12);
+        minuteSelect.value = mm;
+        if (periodSelect) periodSelect.value = period;
+      }
+
+      function openPanel()  { closeAllExcept(picker); syncSelectorsFromValue(); picker.classList.add('open'); panel.classList.remove('hidden'); }
+      function closePanel() { picker.classList.remove('open'); panel.classList.add('hidden'); }
+
+      function applyTime() {
+        if (!hourSelect.value || !minuteSelect.value) return;
+        const period = periodSelect ? periodSelect.value : 'AM';
+        if (!period) return;
+        hiddenInput.value = to24(hourSelect.value, minuteSelect.value, period);
+        hiddenInput.dispatchEvent(new Event('change'));
+        refreshDisplay();
+        closePanel();
+      }
+
+      /* Toggle panel */
+      displayBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        picker.classList.contains('open') ? closePanel() : openPanel();
+      });
+
+      /* CHIP CLICK: one-tap select */
+      chips.forEach(chip => {
+        const t24 = chip.dataset.time;
+        if (t24) chip.textContent = format12(t24);
+
+        chip.addEventListener('click', function (e) {
+          e.stopPropagation();
+          const p      = this.dataset.time.split(':');
+          const hh     = parseInt(p[0], 10);
+          const mm     = p[1] || '00';
+          const period = hh >= 12 ? 'PM' : 'AM';
+          const h12    = String(hh % 12 || 12);
+
+          buildHours(hourSelect);
+          buildPeriod(periodSelect);
+
+          hourSelect.value   = h12;
+          minuteSelect.value = mm;
+          if (periodSelect) periodSelect.value = period;
+
+          hiddenInput.value = to24(h12, mm, period);
+          hiddenInput.dispatchEvent(new Event('change'));
+          refreshDisplay();
+          closePanel();
+        });
+      });
+
+      applyBtn.addEventListener('click', applyTime);
+      clearBtn.addEventListener('click', () => {
+        hiddenInput.value = '';
+        hourSelect.value = ''; minuteSelect.value = '';
+        if (periodSelect) periodSelect.value = '';
+        hiddenInput.dispatchEvent(new Event('change'));
+        refreshDisplay();
+        closePanel();
+      });
+
+      hiddenInput.addEventListener('change', refreshDisplay);
+      refreshDisplay();
+      picker.dataset.ready = '1';
+    }
+
+    function initAll(scope) {
+      (scope || document).querySelectorAll('.time-picker').forEach(setupPicker);
+    }
+
+    initAll(document);
+
+    /* Close on outside click */
+    document.addEventListener('click', e => {
+      document.querySelectorAll('.time-picker.open').forEach(picker => {
+        if (!picker.contains(e.target)) {
+          picker.classList.remove('open');
+          const panel = picker.querySelector('.time-panel');
+          if (panel) panel.classList.add('hidden');
+        }
+      });
+    });
+
+    /* Expose so dynamically-added work items can init their pickers */
+    window.initCustomTimePickersIn = initAll;
+  })();
+  </script>
+
+</body>
+</html>

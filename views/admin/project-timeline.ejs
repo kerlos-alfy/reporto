@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="navy">
+<head>
+  <script>
+    (function(){var t=localStorage.getItem('ag_theme');if(t&&['navy','cyan','amber'].includes(t)){document.documentElement.setAttribute('data-theme',t);}})();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/png" href="/assets/images/logo.png">
+  <title><%= project.name %> — Timeline | AGILE PRIME</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --gold:         #C9A84C;
+      --gold-light:   #E2C97E;
+      --gold-dim:     rgba(201,168,76,.18);
+      --gold-glow:    rgba(201,168,76,.07);
+      --gold-pulse:   rgba(201,168,76,.04);
+      --navy:         #060912;
+      --navy-deep:    #030508;
+      --navy-card:    rgba(10,15,30,.9);
+      --navy-panel:   rgba(13,19,38,.7);
+      --border:       rgba(255,255,255,.06);
+      --border-hover: rgba(255,255,255,.12);
+      --text:         #E2E8F0;
+      --text-muted:   #5A6785;
+      --text-dim:     #3A4560;
+      --radius:       14px;
+      --green:  #2DD4A0;
+      --amber:  #F5C842;
+      --red:    #F56B6B;
+      --blue:   #5BA3FA;
+      --purple: #9B7BF7;
+      --cyan:   #38CCE0;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--navy-deep);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ══════════════════════════
+       AMBIENT BACKGROUND
+    ══════════════════════════ */
+    .bg-canvas {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      overflow: hidden;
+    }
+    .bg-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(201,168,76,.018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,168,76,.018) 1px, transparent 1px);
+      background-size: 48px 48px;
+    }
+    .bg-orb-1 {
+      position: absolute; width: 700px; height: 700px;
+      top: -200px; left: 50%; transform: translateX(-50%);
+      background: radial-gradient(circle, rgba(201,168,76,.06) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .bg-orb-2 {
+      position: absolute; width: 500px; height: 500px;
+      bottom: 10%; right: -100px;
+      background: radial-gradient(circle, rgba(91,163,250,.04) 0%, transparent 70%);
+      border-radius: 50%;
+    }
+    .bg-noise {
+      position: absolute; inset: 0; opacity: .018;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='4'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)'/%3E%3C/svg%3E");
+      background-size: 256px;
+    }
+
+    /* ══════════════════════════
+       LAYOUT
+    ══════════════════════════ */
+    .page {
+      position: relative; z-index: 1;
+      max-width: 1500px; margin: 0 auto;
+      padding: 108px 28px 100px;
+    }
+
+    /* ══════════════════════════
+       TOP NAV BREADCRUMB
+    ══════════════════════════ */
+    .breadcrumb-bar {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 32px; flex-wrap: wrap;
+    }
+    .back-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; font-weight: 600; letter-spacing: .07em;
+      text-transform: uppercase; text-decoration: none;
+      color: var(--text-muted); padding: 7px 14px; border-radius: 100px;
+      border: 1px solid var(--border); background: rgba(255,255,255,.025);
+      transition: all .2s ease;
+    }
+    .back-link:hover { color: var(--gold); border-color: var(--gold-dim); background: var(--gold-glow); }
+    .breadcrumb-sep { color: var(--text-dim); font-size: 10px; }
+    .breadcrumb-cur { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: .06em; text-transform: uppercase; }
+
+    /* ══════════════════════════
+       PAGE HERO
+    ══════════════════════════ */
+    .page-hero {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      gap: 20px; margin-bottom: 40px; flex-wrap: wrap;
+    }
+    .project-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 100px;
+      background: var(--gold-dim); border: 1px solid rgba(201,168,76,.25);
+      font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 500;
+      color: var(--gold); letter-spacing: .1em; text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .project-badge::before {
+      content: ''; width: 5px; height: 5px; border-radius: 50%;
+      background: var(--gold); animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: .5; transform: scale(1.3); }
+    }
+    .hero-title {
+      font-family: 'DM Sans', sans-serif;
+      font-size: clamp(26px, 3.5vw, 40px);
+      font-weight: 800; color: #fff; line-height: 1.1;
+      letter-spacing: -.02em;
+    }
+    .hero-title span { color: var(--gold); }
+    .hero-sub {
+      font-size: 13px; color: var(--text-muted); margin-top: 8px;
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .hero-sub-sep { width: 3px; height: 3px; border-radius: 50%; background: var(--text-dim); }
+
+    /* ══════════════════════════
+       STAT CARDS
+    ══════════════════════════ */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px; margin-bottom: 36px;
+    }
+    .stat-card {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      backdrop-filter: blur(20px);
+      position: relative; overflow: hidden;
+      transition: border-color .2s, transform .2s;
+    }
+    .stat-card::before {
+      content: ''; position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.015) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .stat-card:hover { border-color: rgba(255,255,255,.1); transform: translateY(-1px); }
+    .stat-card-icon {
+      width: 34px; height: 34px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 12px;
+    }
+    .stat-card-val {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 28px; font-weight: 700; color: #fff;
+      line-height: 1; letter-spacing: -.03em;
+    }
+    .stat-card-lbl {
+      font-size: 10px; font-weight: 600; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: .1em; margin-top: 4px;
+    }
+    .stat-accent {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
+      border-radius: 0 0 var(--radius) var(--radius);
+    }
+
+    /* ══════════════════════════
+       FILTER PANEL
+    ══════════════════════════ */
+    .filter-panel {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 24px;
+      backdrop-filter: blur(20px);
+      margin-bottom: 36px;
+      position: relative; overflow: hidden;
+    }
+    .filter-panel::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(201,168,76,.2), transparent);
+    }
+    .filter-row { display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+    .filter-group { display: flex; flex-direction: column; gap: 6px; }
+    .filter-label {
+      font-size: 9px; font-weight: 700; color: var(--text-dim);
+      text-transform: uppercase; letter-spacing: .1em;
+    }
+    .ag-input, .ag-select {
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.07);
+      border-radius: 9px; padding: 9px 13px;
+      color: var(--text); font-size: 12px; font-family: 'DM Sans', sans-serif;
+      outline: none; transition: border-color .2s, background .2s;
+      appearance: none; -webkit-appearance: none;
+    }
+    .ag-input:focus, .ag-select:focus { border-color: rgba(201,168,76,.35); background: rgba(201,168,76,.04); }
+    .ag-input::placeholder { color: var(--text-dim); }
+    .ag-select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%235A6785' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 30px; }
+    .btn-apply {
+      padding: 9px 22px; border-radius: 9px;
+      background: linear-gradient(135deg, var(--gold), var(--gold-light));
+      color: #06080f; font-size: 12px; font-weight: 700;
+      border: none; cursor: pointer; font-family: 'DM Sans', sans-serif;
+      transition: opacity .2s, transform .15s;
+      white-space: nowrap;
+    }
+    .btn-apply:hover { opacity: .9; transform: translateY(-1px); }
+    .btn-apply:active { transform: scale(.97); }
+    .btn-clear {
+      padding: 9px 16px; border-radius: 9px;
+      border: 1px solid rgba(255,255,255,.09); color: var(--text-muted);
+      font-size: 12px; font-weight: 600; text-decoration: none;
+      font-family: 'DM Sans', sans-serif; transition: all .2s; white-space: nowrap;
+      display: inline-flex; align-items: center;
+    }
+    .btn-clear:hover { color: var(--text); border-color: rgba(255,255,255,.18); }
+    .filter-chips { display: flex; gap: 7px; flex-wrap: wrap; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.05); align-items: center; }
+    .filter-chip {
+      padding: 3px 10px; border-radius: 100px;
+      font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;
+    }
+
+    /* ══════════════════════════
+       SECTION LABEL
+    ══════════════════════════ */
+    .sec-hdr {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 18px;
+    }
+    .sec-hdr-icon {
+      width: 32px; height: 32px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      background: var(--gold-dim); border: 1px solid rgba(201,168,76,.2);
+      flex-shrink: 0;
+    }
+    .sec-title {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 700; color: #fff;
+      letter-spacing: .02em;
+    }
+    .sec-line { flex: 1; height: 1px; background: var(--border); }
+    .sec-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-dim);
+      background: rgba(255,255,255,.03);
+      border: 1px solid var(--border);
+      padding: 2px 9px; border-radius: 100px;
+    }
+
+    /* ══════════════════════════
+       GANTT CHART
+    ══════════════════════════ */
+    .gantt-card {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+      margin-bottom: 40px;
+      position: relative;
+    }
+    .gantt-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(201,168,76,.15), transparent);
+      pointer-events: none; z-index: 2;
+    }
+    .gantt-topbar {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 22px; border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.015); flex-wrap: wrap;
+    }
+    .gantt-topbar-title {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px; font-weight: 700; color: #fff; letter-spacing: .03em;
+    }
+    .gantt-range {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-muted);
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      padding: 3px 10px; border-radius: 100px;
+    }
+    .gantt-legend { display: flex; gap: 14px; margin-left: auto; flex-wrap: wrap; }
+    .gantt-legend-item { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--text-muted); font-weight: 600; }
+    .gantt-legend-swatch { width: 12px; height: 12px; border-radius: 4px; flex-shrink: 0; }
+
+    .gantt-scroll { overflow-x: auto; overflow-y: visible; }
+    .gantt-scroll::-webkit-scrollbar { height: 4px; }
+    .gantt-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,.02); }
+    .gantt-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 99px; }
+    .gantt-inner { min-width: 900px; }
+
+    .gantt-col-hdr {
+      display: grid;
+      padding: 0 18px;
+      border-bottom: 1px solid rgba(255,255,255,.05);
+      background: rgba(255,255,255,.01);
+    }
+    .gantt-col-hdr-cell {
+      padding: 8px 3px; text-align: center;
+      border-left: 1px solid rgba(255,255,255,.035);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; color: var(--text-dim);
+    }
+    .gantt-col-hdr-cell.today {
+      color: var(--gold);
+      background: rgba(201,168,76,.05);
+    }
+    .gantt-col-hdr-cell.today .gantt-col-today-mark {
+      display: block; width: 4px; height: 4px; border-radius: 50%;
+      background: var(--gold); margin: 4px auto 0;
+      animation: pulse 2s infinite;
+    }
+
+    .gantt-row {
+      display: grid; padding: 0 18px;
+      align-items: center; min-height: 48px;
+      border-bottom: 1px solid rgba(255,255,255,.03);
+      transition: background .15s; cursor: pointer;
+    }
+    .gantt-row:hover { background: rgba(255,255,255,.02); }
+    .gantt-row.is-active { background: rgba(201,168,76,.04); }
+
+    .gantt-row-label { padding: 8px 14px 8px 0; min-width: 0; }
+    .gantt-row-act {
+      font-size: 12px; font-weight: 600; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .gantt-row-sub {
+      font-size: 10px; color: var(--text-muted); margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    .gantt-cell {
+      height: 48px; display: flex; align-items: center; justify-content: center;
+      border-left: 1px solid rgba(255,255,255,.03); position: relative;
+    }
+
+    .gantt-bar {
+      height: 22px; border-radius: 6px; width: 92%;
+      position: relative; overflow: hidden;
+      transition: filter .2s, transform .2s;
+      cursor: pointer;
+    }
+    .gantt-bar:hover { filter: brightness(1.25); transform: scaleY(1.1); }
+    .gantt-bar-bg { position: absolute; inset: 0; border-radius: 6px; }
+    .gantt-bar-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 6px; }
+    .gantt-bar-txt {
+      position: absolute; inset: 0; display: flex; align-items: center;
+      justify-content: center; font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; font-weight: 500; color: rgba(255,255,255,.9); z-index: 1;
+    }
+
+    .bar-green .gantt-bar-bg  { background: rgba(45,212,160,.14); }
+    .bar-green .gantt-bar-fill { background: linear-gradient(90deg, #2DD4A0, #10B981); }
+    .bar-amber .gantt-bar-bg  { background: rgba(245,200,66,.14); }
+    .bar-amber .gantt-bar-fill { background: linear-gradient(90deg, #F5C842, #F59E0B); }
+    .bar-red   .gantt-bar-bg  { background: rgba(245,107,107,.14); }
+    .bar-red   .gantt-bar-fill { background: linear-gradient(90deg, #F56B6B, #EF4444); }
+
+    .gantt-span-line {
+      width: 100%; height: 1px; border-radius: 1px;
+      background: rgba(201,168,76,.12);
+    }
+
+    /* ══════════════════════════
+       DAILY LOG
+    ══════════════════════════ */
+    .daily-layout { display: flex; gap: 20px; align-items: flex-start; }
+
+    /* Sidebar */
+    .day-sidebar {
+      width: 210px; flex-shrink: 0;
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+      position: sticky; top: 96px;
+    }
+    .day-sidebar-head {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.02);
+    }
+    .day-sidebar-title {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px; font-weight: 700; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: .1em;
+    }
+    .day-search {
+      width: 100%;
+      background: rgba(255,255,255,.03);
+      border: 1px solid rgba(255,255,255,.06);
+      border-radius: 8px; padding: 7px 11px;
+      color: var(--text); font-size: 11px; outline: none;
+      font-family: 'DM Sans', sans-serif;
+      margin-top: 10px; transition: border-color .2s;
+    }
+    .day-search:focus { border-color: rgba(201,168,76,.25); }
+    .day-search::placeholder { color: var(--text-dim); }
+    .day-list { max-height: 520px; overflow-y: auto; }
+    .day-list::-webkit-scrollbar { width: 3px; }
+    .day-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 99px; }
+
+    .day-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.03);
+      cursor: pointer; transition: background .15s;
+      position: relative;
+    }
+    .day-item:hover { background: rgba(255,255,255,.025); }
+    .day-item.active {
+      background: rgba(201,168,76,.07);
+    }
+    .day-item.active::before {
+      content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+      width: 2px; background: var(--gold); border-radius: 0 2px 2px 0;
+    }
+    .day-item-indicator {
+      width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+    }
+    .day-item-indicator.normal { background: var(--gold); opacity: .4; }
+    .day-item-indicator.delay  { background: var(--red); opacity: .85; }
+    .day-item-date {
+      font-size: 11px; font-weight: 600; color: var(--text); flex: 1;
+    }
+    .day-item-meta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px; color: var(--text-dim); margin-top: 1px;
+    }
+
+    /* Detail panel */
+    .day-detail { flex: 1; min-width: 0; }
+
+    .detail-empty-state {
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      padding: 80px 20px; text-align: center;
+      background: var(--navy-card); border: 1px solid var(--border);
+      border-radius: var(--radius); backdrop-filter: blur(20px);
+    }
+    .detail-empty-state p { font-size: 13px; color: var(--text-muted); margin-top: 14px; }
+
+    /* Date label */
+    .detail-date-bar {
+      display: flex; align-items: center; gap: 12px;
+      margin-bottom: 16px; padding: 0 2px;
+    }
+    .detail-date-txt {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px; font-weight: 700; color: #fff;
+    }
+    .detail-date-sub { font-size: 11px; color: var(--text-muted); }
+    .detail-date-bar-line { flex: 1; height: 1px; background: var(--border); }
+
+    /* Report card */
+    .report-card {
+      background: var(--navy-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      backdrop-filter: blur(20px);
+      margin-bottom: 14px;
+      animation: slideUp .32s ease both;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: none; }
+    }
+
+    .report-card-head {
+      display: flex; align-items: center; gap: 14px;
+      padding: 16px 20px; border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.015); flex-wrap: wrap;
+      position: relative;
+    }
+    .report-card-head::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.06), transparent);
+    }
+
+    .eng-avatar {
+      width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+      background: linear-gradient(135deg, var(--gold) 0%, #A07830 100%);
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 800;
+      color: var(--navy-deep); letter-spacing: .02em;
+      box-shadow: 0 0 0 2px rgba(201,168,76,.2);
+    }
+    .eng-name { font-size: 13px; font-weight: 700; color: #fff; }
+    .eng-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; display: flex; gap: 6px; align-items: center; }
+    .eng-meta a { color: var(--gold); text-decoration: none; }
+
+    .badge {
+      padding: 4px 11px; border-radius: 100px;
+      font-size: 10px; font-weight: 700; letter-spacing: .04em;
+      text-transform: uppercase; display: inline-flex; align-items: center; gap: 4px;
+    }
+    .badge-day   { background: rgba(245,200,66,.1);  color: #F5C842; border: 1px solid rgba(245,200,66,.2); }
+    .badge-night { background: rgba(155,123,247,.1); color: #B89EFC; border: 1px solid rgba(155,123,247,.2); }
+    .badge-gold  { background: rgba(201,168,76,.1);  color: var(--gold);  border: 1px solid rgba(201,168,76,.2); margin-left: auto; }
+
+    .report-card-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+
+    /* Work item row */
+    .work-item {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 15px; border-radius: 10px;
+      background: rgba(255,255,255,.02);
+      border: 1px solid rgba(255,255,255,.04);
+      transition: background .15s, border-color .15s;
+      flex-wrap: wrap;
+    }
+    .work-item:hover { background: rgba(255,255,255,.035); border-color: rgba(255,255,255,.07); }
+
+    .work-item-info { flex: 1; min-width: 120px; }
+    .work-item-name { font-size: 12px; font-weight: 600; color: var(--text); }
+    .work-item-sub  { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+
+    .work-prog-wrap { display: flex; align-items: center; gap: 9px; min-width: 130px; }
+    .work-prog-track {
+      flex: 1; height: 5px; border-radius: 99px;
+      background: rgba(255,255,255,.05); overflow: hidden;
+    }
+    .work-prog-fill { height: 100%; border-radius: 99px; transition: width .5s ease; }
+    .work-prog-pct {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px; font-weight: 500; min-width: 34px; text-align: right;
+    }
+    .work-mp {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px; color: var(--text-muted);
+      display: flex; align-items: center; gap: 4px;
+    }
+
+    /* Source badges */
+    .src-row { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px; }
+    .src-chip {
+      padding: 2px 8px; border-radius: 5px;
+      font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+    }
+    .src-ih  { background: rgba(201,168,76,.1); color: var(--gold); }
+    .src-sup { background: rgba(91,163,250,.1);  color: #7AB8FC; }
+    .src-sub { background: rgba(155,123,247,.1); color: #B89EFC; }
+
+    /* Banners */
+    .banner {
+      display: flex; align-items: flex-start; gap: 9px;
+      padding: 11px 14px; border-radius: 9px; font-size: 11px;
+      line-height: 1.55;
+    }
+    .banner-comment {
+      background: rgba(91,163,250,.06);
+      border: 1px solid rgba(91,163,250,.14);
+      color: #8BBEFB;
+    }
+    .banner-delay {
+      background: rgba(245,107,107,.06);
+      border: 1px solid rgba(245,107,107,.18);
+      color: #F89B9B;
+    }
+    .banner svg { flex-shrink: 0; margin-top: 1px; }
+
+    /* ══════════════════════════
+       RESPONSIVE
+    ══════════════════════════ */
+    @media (max-width: 768px) {
+      .daily-layout { flex-direction: column; }
+      .day-sidebar  { width: 100%; position: static; }
+      .day-list     { max-height: 200px; }
+      .page         { padding: 96px 16px 80px; }
+    }
+    @media (max-width: 640px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+  <script src="/js/theme.js"></script>
+</head>
+<body>
+
+<!-- Ambient background -->
+<div class="bg-canvas">
+  <div class="bg-grid"></div>
+  <div class="bg-orb-1"></div>
+  <div class="bg-orb-2"></div>
+  <div class="bg-noise"></div>
+</div>
+
+<%- include('../partials/navbar') %>
+
+<div class="page">
+
+  <!-- ── Breadcrumb ── -->
+  <div class="breadcrumb-bar">
+    <a href="/admin/dashboard" class="back-link">
+      <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      Dashboard
+    </a>
+    <span class="breadcrumb-sep">›</span>
+    <span class="breadcrumb-cur">Project Timeline</span>
+  </div>
+
+  <!-- ── Hero ── -->
+  <div class="page-hero">
+    <div>
+      <% if (project.code) { %>
+      <div class="project-badge">
+        <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <%= project.code %>
+      </div>
+      <% } %>
+      <h1 class="hero-title"><%= project.name %></h1>
+      <div class="hero-sub">
+        <% if (project.location) { %>
+          <span><%= project.location %></span>
+          <span class="hero-sub-sep"></span>
+        <% } %>
+        <span>Daily Timeline</span>
+        <% const _pMin = typeof projectMinDate !== "undefined" ? projectMinDate : minDate;
+           const _pMax = typeof projectMaxDate !== "undefined" ? projectMaxDate : maxDate;
+           if (_pMin && _pMax) { %>
+          <span class="hero-sub-sep"></span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px"><%= _pMin %> → <%= _pMax %></span>
+        <% } %>
+      </div>
+    </div>
+    <a href="/admin/projects/<%= project._id %>/timeline"
+       style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;border:1px solid var(--border);color:var(--text-muted);font-size:11px;font-weight:600;text-decoration:none;background:rgba(255,255,255,.02);transition:all .2s;letter-spacing:.04em"
+       onmouseover="this.style.color='var(--gold)';this.style.borderColor='var(--gold-dim)'"
+       onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)'">
+      <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Refresh
+    </a>
+  </div>
+
+  <!-- ── Stats ── -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-card-icon" style="background:rgba(201,168,76,.1)">
+        <svg width="16" height="16" fill="none" stroke="var(--gold)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      </div>
+      <div class="stat-card-val"><%= totalReports %></div>
+      <div class="stat-card-lbl">Total Reports</div>
+      <div class="stat-accent" style="background:linear-gradient(90deg,var(--gold),transparent)"></div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-icon" style="background:rgba(91,163,250,.1)">
+        <svg width="16" height="16" fill="none" stroke="var(--blue)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      </div>
+      <div class="stat-card-val"><%= ganttItems.length %></div>
+      <div class="stat-card-lbl">Activities</div>
+      <div class="stat-accent" style="background:linear-gradient(90deg,var(--blue),transparent)"></div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-card-icon" style="background:rgba(45,212,160,.1)">
+        <svg width="16" height="16" fill="none" stroke="var(--green)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      </div>
+      <div class="stat-card-val"><%= dailyDays.length %></div>
+      <div class="stat-card-lbl">Active Days</div>
+      <div class="stat-accent" style="background:linear-gradient(90deg,var(--green),transparent)"></div>
+    </div>
+
+    <% const _spanMin = typeof projectMinDate !== "undefined" ? projectMinDate : minDate;
+       const _spanMax = typeof projectMaxDate !== "undefined" ? projectMaxDate : maxDate;
+       if (_spanMin && _spanMax) {
+         const ms   = new Date(_spanMax) - new Date(_spanMin);
+         const span = Math.round(ms / 86400000) + 1;
+    %>
+    <div class="stat-card">
+      <div class="stat-card-icon" style="background:rgba(155,123,247,.1)">
+        <svg width="16" height="16" fill="none" stroke="var(--purple)" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      </div>
+      <div class="stat-card-val"><%= span %></div>
+      <div class="stat-card-lbl">Day Span</div>
+      <div class="stat-accent" style="background:linear-gradient(90deg,var(--purple),transparent)"></div>
+    </div>
+    <% } %>
+  </div>
+
+  <!-- ── Filter Panel ── -->
+  <div class="filter-panel">
+    <form method="GET" action="/admin/projects/<%= project._id %>/timeline">
+      <div class="filter-row">
+
+        <div class="filter-group">
+          <label class="filter-label">From Date</label>
+          <input type="date" name="fromDate" value="<%= activeFilters.fromDate %>" class="ag-input" style="min-width:130px">
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">To Date</label>
+          <input type="date" name="toDate" value="<%= activeFilters.toDate %>" class="ag-input" style="min-width:130px">
+        </div>
+
+        <div style="width:1px;height:34px;background:rgba(255,255,255,.06);align-self:flex-end;margin:0 2px"></div>
+
+        <div class="filter-group">
+          <label class="filter-label">Element</label>
+          <select name="element" class="ag-select" style="min-width:150px;background-color:#0a0f1e">
+            <option value="">All Elements</option>
+            <% filterOptions.elements.forEach(e => { %>
+            <option value="<%= e %>" <%= activeFilters.element === e ? 'selected' : '' %>><%= e %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Level</label>
+          <select name="level" class="ag-select" style="min-width:140px;background-color:#0a0f1e">
+            <option value="">All Levels</option>
+            <% filterOptions.levels.forEach(l => { %>
+            <option value="<%= l %>" <%= activeFilters.level === l ? 'selected' : '' %>><%= l %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Activity</label>
+          <select name="activity" class="ag-select" style="min-width:160px;background-color:#0a0f1e">
+            <option value="">All Activities</option>
+            <% filterOptions.activities.forEach(a => { %>
+            <option value="<%= a %>" <%= activeFilters.activity === a ? 'selected' : '' %>><%= a %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div style="display:flex;gap:7px;align-self:flex-end">
+          <button type="submit" class="btn-apply">Apply Filters</button>
+          <a href="/admin/projects/<%= project._id %>/timeline" class="btn-clear">Clear</a>
+        </div>
+      </div>
+
+      <% const hasFilters = activeFilters.fromDate || activeFilters.toDate || activeFilters.element || activeFilters.level || activeFilters.activity; %>
+      <% if (hasFilters) { %>
+      <div class="filter-chips">
+        <span style="font-size:10px;color:var(--text-dim);font-weight:600;letter-spacing:.06em;text-transform:uppercase">Active:</span>
+        <% if (activeFilters.fromDate || activeFilters.toDate) { %>
+          <span class="filter-chip" style="background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,168,76,.2)">
+            📅 <%= activeFilters.fromDate || '…' %> → <%= activeFilters.toDate || '…' %>
+          </span>
+        <% } %>
+        <% if (activeFilters.element) { %>
+          <span class="filter-chip" style="background:rgba(91,163,250,.1);color:#7AB8FC;border:1px solid rgba(91,163,250,.2)">Element: <%= activeFilters.element %></span>
+        <% } %>
+        <% if (activeFilters.level) { %>
+          <span class="filter-chip" style="background:rgba(155,123,247,.1);color:#B89EFC;border:1px solid rgba(155,123,247,.2)">Level: <%= activeFilters.level %></span>
+        <% } %>
+        <% if (activeFilters.activity) { %>
+          <span class="filter-chip" style="background:rgba(45,212,160,.1);color:#6EDDB7;border:1px solid rgba(45,212,160,.2)">Activity: <%= activeFilters.activity %></span>
+        <% } %>
+      </div>
+      <% } %>
+    </form>
+  </div>
+
+  <!-- ════════════════════════════════════
+       GANTT SECTION
+  ════════════════════════════════════ -->
+  <div class="sec-hdr">
+    <div class="sec-hdr-icon">
+      <svg width="15" height="15" fill="none" stroke="var(--gold)" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+    </div>
+    <span class="sec-title">Activity Gantt</span>
+    <span class="sec-count"><%= ganttItems.length %> activities</span>
+    <div class="sec-line"></div>
+  </div>
+
+  <% if (ganttItems.length === 0) { %>
+    <div class="gantt-card" style="padding:48px;text-align:center">
+      <p style="color:var(--text-muted);font-size:13px">No activities recorded yet for this project.</p>
+    </div>
+  <% } else { %>
+  <div class="gantt-card" id="ganttWrap">
+    <div class="gantt-topbar">
+      <span class="gantt-topbar-title">Activity Timeline — <%= project.name %></span>
+      <% if (minDate && maxDate) { %>
+        <span class="gantt-range"><%= minDate %> → <%= maxDate %></span>
+      <% } %>
+      <div class="gantt-legend">
+        <span class="gantt-legend-item">
+          <span class="gantt-legend-swatch" style="background:rgba(45,212,160,.6)"></span>≥ 80%
+        </span>
+        <span class="gantt-legend-item">
+          <span class="gantt-legend-swatch" style="background:rgba(245,200,66,.6)"></span>40–79%
+        </span>
+        <span class="gantt-legend-item">
+          <span class="gantt-legend-swatch" style="background:rgba(245,107,107,.6)"></span>&lt; 40%
+        </span>
+      </div>
+    </div>
+    <div class="gantt-scroll">
+      <div class="gantt-inner" id="ganttInner"></div>
+    </div>
+  </div>
+  <% } %>
+
+  <!-- ════════════════════════════════════
+       DAILY LOG SECTION
+  ════════════════════════════════════ -->
+  <div class="sec-hdr" style="margin-top:44px">
+    <div class="sec-hdr-icon">
+      <svg width="15" height="15" fill="none" stroke="var(--gold)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    </div>
+    <span class="sec-title">Daily Log</span>
+    <span class="sec-count"><%= dailyDays.length %> days</span>
+    <div class="sec-line"></div>
+  </div>
+
+  <% if (dailyDays.length === 0) { %>
+    <div class="detail-empty-state">
+      <svg width="44" height="44" fill="none" stroke="var(--text-dim)" stroke-width="1.2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <p>No daily reports found for this project.</p>
+    </div>
+  <% } else { %>
+  <div class="daily-layout">
+
+    <!-- Sidebar -->
+    <div class="day-sidebar">
+      <div class="day-sidebar-head">
+        <div class="day-sidebar-title">Select Day</div>
+        <input type="text" class="day-search" id="daySearch" placeholder="Search dates…">
+      </div>
+      <div class="day-list" id="dayList">
+        <% dailyDays.forEach((day, i) => {
+          const dt = new Date(day.date + 'T00:00:00');
+          const label = dt.toLocaleDateString('en-GB', { weekday:'short', day:'2-digit', month:'short', year:'numeric' });
+          const hasDelay = day.entries.some(e => e.generalDelays);
+          const totalMp  = day.entries.reduce((s,e) => s + e.totalManpower, 0);
+        %>
+        <div class="day-item <%= i===0?'active':'' %>" data-date="<%= day.date %>" onclick="selectDay('<%= day.date %>', this)">
+          <span class="day-item-indicator <%= hasDelay?'delay':'normal' %>" title="<%= hasDelay?'Has delays':'No delays' %>"></span>
+          <div style="flex:1;min-width:0">
+            <div class="day-item-date"><%= label %></div>
+            <div class="day-item-meta"><%= day.entries.length %>R · <%= totalMp %>W</div>
+          </div>
+        </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- Detail -->
+    <div class="day-detail" id="detailPanel"></div>
+
+  </div>
+  <% } %>
+
+</div><!-- .page -->
+
+<!-- Embedded data -->
+<script>
+  const GANTT_ITEMS = <%- JSON.stringify(ganttItems) %>;
+  const DAILY_DAYS  = <%- JSON.stringify(dailyDays)  %>;
+  const MIN_DATE    = <%- JSON.stringify(minDate)    %>;
+  const MAX_DATE    = <%- JSON.stringify(maxDate)    %>;
+  const PROJECT_ID  = <%- JSON.stringify(project._id.toString()) %>;
+</script>
+
+<script>
+/* ═══════════════════════════
+   GANTT RENDERER
+═══════════════════════════ */
+(function () {
+  if (!GANTT_ITEMS.length || !MIN_DATE || !MAX_DATE) return;
+
+  function datesInRange(from, to) {
+    const dates = []; let cur = new Date(from + 'T00:00:00Z');
+    const end   = new Date(to   + 'T00:00:00Z');
+    while (cur <= end) {
+      dates.push(cur.toISOString().slice(0,10));
+      cur = new Date(cur.getTime() + 86400000);
+    }
+    return dates;
+  }
+
+  const allDates = datesInRange(MIN_DATE, MAX_DATE);
+  const todayStr = new Date().toISOString().slice(0,10);
+  const LABEL_W  = 240;
+  const avail    = Math.max(0, (window.innerWidth || 1300) - LABEL_W - 100);
+  const CELL_W   = Math.max(28, Math.min(54, Math.floor(avail / Math.max(allDates.length, 1))));
+
+  const inner = document.getElementById('ganttInner');
+  if (!inner) return;
+
+  const gridCols = `${LABEL_W}px repeat(${allDates.length}, ${CELL_W}px)`;
+
+  /* ── Date header ── */
+  const hdr = document.createElement('div');
+  hdr.className = 'gantt-col-hdr';
+  hdr.style.gridTemplateColumns = gridCols;
+
+  const spacer = document.createElement('div');
+  spacer.style.cssText = 'padding:8px 0';
+  hdr.appendChild(spacer);
+
+  allDates.forEach(d => {
+    const dt   = new Date(d + 'T00:00:00');
+    const day  = dt.getDate();
+    const mon  = dt.toLocaleDateString('en-GB', { month:'short' });
+    const cell = document.createElement('div');
+    const isToday = d === todayStr;
+    cell.className = 'gantt-col-hdr-cell' + (isToday ? ' today' : '');
+    const show = allDates.length <= 14 || day % 3 === 1 || d === MIN_DATE || d === MAX_DATE;
+    cell.innerHTML = show
+      ? `<div style="font-weight:600">${day}</div><div style="font-size:8px;opacity:.65">${mon}</div>${isToday?'<span class="gantt-col-today-mark"></span>':''}`
+      : `<div style="opacity:.25">${day}</div>`;
+    cell.title = d;
+    cell.style.cursor = 'pointer';
+    cell.addEventListener('click', () => {
+      const dd = DAILY_DAYS.find(x => x.date === d);
+      if (!dd) return;
+      document.querySelectorAll('.day-item').forEach(x => x.classList.remove('active'));
+      const el = document.querySelector(`.day-item[data-date="${d}"]`);
+      if (el) { el.classList.add('active'); el.scrollIntoView({ block:'nearest' }); }
+      renderDetail(d);
+    });
+    hdr.appendChild(cell);
+  });
+  inner.appendChild(hdr);
+
+  /* ── Rows ── */
+  GANTT_ITEMS.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'gantt-row';
+    row.style.gridTemplateColumns = gridCols;
+    row.dataset.key = item.key;
+
+    const lbl = document.createElement('div');
+    lbl.className = 'gantt-row-label';
+    lbl.innerHTML = `<div class="gantt-row-act">${esc(item.activity)}</div>
+      <div class="gantt-row-sub">${esc(item.element)} · ${esc(item.level)} · <span style="font-family:'JetBrains Mono',monospace;font-size:9px">${item.daysActive}d · ${item.totalManpower}w</span></div>`;
+    row.appendChild(lbl);
+
+    allDates.forEach(d => {
+      const cell    = document.createElement('div');
+      cell.className = 'gantt-cell';
+
+      const dayData = item.days && item.days[d];
+      const inSpan  = item.firstDate && item.lastDate && d >= item.firstDate && d <= item.lastDate;
+
+      if (dayData) {
+        const prog      = dayData.progress || 0;
+        const mp        = dayData.manpower  || 0;
+        const engineers = (dayData.engineers || []).join(', ');
+        const barCls    = prog >= 80 ? 'bar-green' : prog >= 40 ? 'bar-amber' : 'bar-red';
+
+        const bar = document.createElement('div');
+        bar.className = `gantt-bar ${barCls}`;
+        bar.style.width = '92%';
+        bar.innerHTML = `<div class="gantt-bar-bg"></div>
+          <div class="gantt-bar-fill" style="width:${prog}%"></div>
+          <div class="gantt-bar-txt">${prog}%</div>`;
+        bar.title = `${item.activity} · ${d}\nProgress: ${prog}%\nWorkers: ${mp}\nEngineer: ${engineers}`;
+        bar.style.cursor = 'pointer';
+        bar.addEventListener('click', e => {
+          e.stopPropagation();
+          const found = DAILY_DAYS.find(x => x.date === d);
+          if (!found) return;
+          document.querySelectorAll('.day-item').forEach(x => x.classList.remove('active'));
+          const el = document.querySelector(`.day-item[data-date="${d}"]`);
+          if (el) { el.classList.add('active'); el.scrollIntoView({ block:'nearest' }); }
+          renderDetail(d);
+        });
+        cell.appendChild(bar);
+      } else if (inSpan) {
+        const line = document.createElement('div');
+        line.className = 'gantt-span-line';
+        cell.appendChild(line);
+      }
+
+      row.appendChild(cell);
+    });
+
+    inner.appendChild(row);
+  });
+})();
+
+/* ═══════════════════════════
+   HELPERS
+═══════════════════════════ */
+function esc(s) {
+  return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function fmt12(t) {
+  if (!t) return '';
+  const h = parseInt(t,10), m = t.split(':')[1]||'00';
+  return (h%12||12) + ':' + m + ' ' + (h>=12?'PM':'AM');
+}
+function progColor(p) {
+  if (p >= 80) return '#2DD4A0';
+  if (p >= 40) return '#F5C842';
+  return '#F56B6B';
+}
+
+/* ═══════════════════════════
+   DAILY DETAIL RENDERER
+═══════════════════════════ */
+function renderDetail(dateStr) {
+  const panel = document.getElementById('detailPanel');
+  if (!panel) return;
+
+  const day = DAILY_DAYS.find(d => d.date === dateStr);
+  if (!day || !day.entries.length) {
+    panel.innerHTML = `<div style="padding:40px;text-align:center;background:var(--navy-card);border:1px solid var(--border);border-radius:14px">
+      <p style="font-size:12px;color:var(--text-dim)">No reports submitted on this day.</p>
+    </div>`;
+    return;
+  }
+
+  const dt    = new Date(dateStr + 'T00:00:00');
+  const label = dt.toLocaleDateString('en-GB', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+  const dayOfWeek = dt.toLocaleDateString('en-GB', { weekday:'long' });
+  const dayShort  = dt.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  const totalWorkers = day.entries.reduce((s,e) => s + e.totalManpower, 0);
+
+  const datebar = `<div class="detail-date-bar">
+    <div>
+      <div class="detail-date-txt">${dayOfWeek}</div>
+      <div class="detail-date-sub">${dayShort} · ${day.entries.length} report${day.entries.length>1?'s':''} · ${totalWorkers} workers on site</div>
+    </div>
+    <div class="detail-date-bar-line"></div>
+  </div>`;
+
+  const cards = day.entries.map((entry, ei) => {
+    const initials = (entry.engineerName||'').split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+    const shiftCls = entry.shiftType === 'Night' ? 'badge-night' : 'badge-day';
+    const shiftIcon = entry.shiftType === 'Night'
+      ? `<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`
+      : `<svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>`;
+
+    const timeStr = (entry.startTime && entry.endTime)
+      ? `${fmt12(entry.startTime)} → ${fmt12(entry.endTime)}`
+      : entry.shiftType;
+
+    const items = (entry.items||[]).map(item => {
+      const pc = progColor(item.progress||0);
+      const srcBadges = (item.sources||[]).map(s => {
+        const cls   = s.type==='In-House'?'src-ih':s.type==='Supplier'?'src-sup':'src-sub';
+        const lbl   = s.companyName ? `${s.type}: ${s.companyName}` : s.type;
+        return `<span class="src-chip ${cls}">${esc(lbl)}</span>`;
+      }).join('');
+
+      const commentLine = item.itemComment
+        ? `<div style="font-size:10px;color:var(--text-muted);margin-top:5px;font-style:italic;opacity:.8">"${esc(item.itemComment)}"</div>`
+        : '';
+
+      return `<div class="work-item">
+        <div class="work-item-info">
+          <div class="work-item-name">${esc(item.activity)}</div>
+          <div class="work-item-sub">${esc(item.element)} · ${esc(item.level)}</div>
+          ${srcBadges ? `<div class="src-row">${srcBadges}</div>` : ''}
+          ${commentLine}
+        </div>
+        <div class="work-prog-wrap">
+          <div class="work-prog-track">
+            <div class="work-prog-fill" style="width:${item.progress||0}%;background:${pc}"></div>
+          </div>
+          <span class="work-prog-pct" style="color:${pc}">${item.progress||0}%</span>
+        </div>
+        <div class="work-mp">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+          ${item.totalManpower}
+        </div>
+      </div>`;
+    }).join('');
+
+    const commentHtml = entry.generalComment
+      ? `<div class="banner banner-comment">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+          ${esc(entry.generalComment)}
+         </div>` : '';
+    const delayHtml = entry.generalDelays
+      ? `<div class="banner banner-delay">
+          <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          ${esc(entry.generalDelays)}
+         </div>` : '';
+
+    return `<div class="report-card" style="animation-delay:${ei*.06}s">
+      <div class="report-card-head">
+        <div class="eng-avatar">${esc(initials)}</div>
+        <div>
+          <div class="eng-name">${esc(entry.engineerName)}</div>
+          <div class="eng-meta">
+            ${esc(timeStr)}
+            <span style="width:3px;height:3px;border-radius:50%;background:var(--text-dim)"></span>
+            <a href="/admin/reports/${esc(entry.reportId)}">${esc(entry.reportId)}</a>
+          </div>
+        </div>
+        <span class="badge ${shiftCls}">${shiftIcon} ${esc(entry.shiftType)}</span>
+        <span class="badge badge-gold">
+          <svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          ${entry.totalManpower} workers
+        </span>
+      </div>
+      <div class="report-card-body">
+        ${commentHtml}${delayHtml}
+        ${items || '<p style="font-size:12px;color:var(--text-dim)">No work items recorded.</p>'}
+      </div>
+    </div>`;
+  }).join('');
+
+  panel.innerHTML = datebar + cards;
+  if (window.innerWidth < 768) panel.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function selectDay(dateStr, el) {
+  document.querySelectorAll('.day-item').forEach(x => x.classList.remove('active'));
+  if (el) el.classList.add('active');
+  renderDetail(dateStr);
+}
+
+/* Day search */
+document.getElementById('daySearch')?.addEventListener('input', function () {
+  const q = this.value.toLowerCase();
+  document.querySelectorAll('.day-item').forEach(item => {
+    item.style.display = item.querySelector('.day-item-date').textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+});
+
+/* Initial render */
+(function () {
+  if (DAILY_DAYS.length) renderDetail(DAILY_DAYS[0].date);
+})();
+</script>
+
+</body>
+</html>

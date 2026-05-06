@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="/assets/images/logo.png" />
+  <title>Sign In — AGILE PRIME DAILY REPORT</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { font-family: "DM Sans", system-ui, sans-serif; background: #06080f; }
+
+    /* ── Animated background ── */
+    .bg-grid {
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(rgba(201,168,76,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(201,168,76,0.03) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
+    }
+    .bg-glow {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% 30%, rgba(201,168,76,0.07) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 30% at 20% 80%, rgba(99,102,241,0.04) 0%, transparent 60%);
+    }
+
+    /* ── Card ── */
+    .login-card {
+      background: rgba(11,17,32,0.75);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 20px;
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 32px 64px rgba(0,0,0,0.5), 0 0 80px rgba(201,168,76,0.06);
+    }
+
+    /* ── Input ── */
+    .login-input {
+      width: 100%; background: rgba(15,23,42,0.8); border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 12px; padding: 12px 16px; color: #f1f5f9; font-size: 0.9375rem;
+      transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+      font-family: inherit;
+    }
+    .login-input::placeholder { color: rgba(148,163,184,0.35); }
+    .login-input:hover { border-color: rgba(201,168,76,0.2); }
+    .login-input:focus { border-color: rgba(201,168,76,0.5); box-shadow: 0 0 0 3px rgba(201,168,76,0.08); }
+
+    /* ── Password toggle ── */
+    .pwd-wrap { position: relative; }
+    .pwd-toggle {
+      position: absolute; right: 14px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; padding: 0;
+      color: rgba(148,163,184,0.4); transition: color 0.2s;
+    }
+    .pwd-toggle:hover { color: rgba(201,168,76,0.7); }
+
+    /* ── Button ── */
+    .login-btn {
+      width: 100%; padding: 13px;
+      background: linear-gradient(135deg, #c9a84c 0%, #e2c97e 50%, #c9a84c 100%);
+      background-size: 200% 100%; background-position: 100% 0;
+      color: #06080f; font-weight: 700; font-size: 0.9375rem;
+      border: none; border-radius: 12px; cursor: pointer;
+      transition: background-position 0.4s, box-shadow 0.3s, transform 0.15s;
+      letter-spacing: 0.01em; font-family: inherit;
+    }
+    .login-btn:hover { background-position: 0 0; box-shadow: 0 8px 24px rgba(201,168,76,0.3); }
+    .login-btn:active { transform: scale(0.99); }
+    .login-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    /* ── Flash messages ── */
+    .flash-error {
+      background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 10px; padding: 10px 14px; color: #fca5a5;
+      font-size: 0.875rem; display: flex; align-items: center; gap: 8px;
+    }
+
+    /* ── Logo pulse ── */
+    @keyframes subtle-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(201,168,76,0.3); }
+      50% { box-shadow: 0 0 0 8px rgba(201,168,76,0); }
+    }
+    .logo-icon { animation: subtle-pulse 3s ease-in-out infinite; }
+
+    /* ── Spinner ── */
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { animation: spin 0.7s linear infinite; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center px-4 py-8">
+  <div class="bg-grid"></div>
+  <div class="bg-glow"></div>
+
+  <div class="relative z-10 w-full max-w-sm">
+
+    <!-- Logo & title -->
+    <div class="text-center mb-8">
+      <div class="logo-icon w-14 h-14 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-[#c9a84c] to-[#e2c97e] flex items-center justify-center">
+        <svg class="w-7 h-7 text-[#06080f]" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24">
+          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+          <polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      </div>
+      <h1 class="text-xl font-bold text-white tracking-tight">AGILE PRIME <span style="color:#c9a84c">DAILY REPORT</span></h1>
+      <p class="text-gray-500 text-sm mt-1">Agile Prime General Contracting L.L.C.</p>
+    </div>
+
+    <!-- Card -->
+    <div class="login-card p-7 sm:p-8">
+
+      <p class="text-gray-400 text-sm mb-6 text-center">Sign in to your account</p>
+
+      <!-- Flash errors -->
+      <% if (typeof flash !== 'undefined' && flash.error) { %>
+        <div class="flash-error mb-5">
+          <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+          <%= flash.error %>
+        </div>
+      <% } %>
+
+      <form action="/admin/login" method="POST" id="loginForm" class="space-y-5" novalidate>
+
+        <!-- Username -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+          <input
+            type="text"
+            name="username"
+            id="username"
+            required
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            class="login-input"
+            placeholder="Enter your username" />
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Password</label>
+          <div class="pwd-wrap">
+            <input
+              type="password"
+              name="password"
+              id="password"
+              required
+              autocomplete="current-password"
+              class="login-input"
+              style="padding-right: 44px"
+              placeholder="Enter your password" />
+            <button type="button" class="pwd-toggle" onclick="togglePwd()" id="pwdBtn" aria-label="Toggle password visibility">
+              <!-- eye icon -->
+              <svg id="eyeShow" class="w-4.5 h-4.5" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg id="eyeHide" class="w-4.5 h-4.5 hidden" style="width:18px;height:18px" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="login-btn mt-1" id="submitBtn">
+          <span id="btnText">Sign In</span>
+          <svg id="btnSpinner" class="spinner hidden w-4 h-4 inline ml-2" style="width:16px;height:16px;vertical-align:-3px" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/>
+          </svg>
+        </button>
+
+      </form>
+    </div>
+
+    <p class="text-center text-gray-600 text-xs mt-6">&copy; 2026 Agile Prime General Contracting L.L.C.</p>
+  </div>
+
+  <script>
+    // Password visibility toggle
+    function togglePwd() {
+      const inp = document.getElementById('password');
+      const show = document.getElementById('eyeShow');
+      const hide = document.getElementById('eyeHide');
+      if (inp.type === 'password') {
+        inp.type = 'text';
+        show.classList.add('hidden');
+        hide.classList.remove('hidden');
+      } else {
+        inp.type = 'password';
+        show.classList.remove('hidden');
+        hide.classList.add('hidden');
+      }
+    }
+
+    // Loading state on submit
+    document.getElementById('loginForm').addEventListener('submit', function(e) {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      if (!username || !password) return; // let browser handle empty field
+      const btn = document.getElementById('submitBtn');
+      const txt = document.getElementById('btnText');
+      const spin = document.getElementById('btnSpinner');
+      btn.disabled = true;
+      txt.textContent = 'Signing in…';
+      spin.classList.remove('hidden');
+    });
+
+    // Auto-focus username field
+    document.getElementById('username').focus();
+  </script>
+</body>
+</html>

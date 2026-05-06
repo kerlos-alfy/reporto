@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/logo.png">
+<link rel="apple-touch-icon" href="/assets/images/logo.png">
+  <title>Edit User — Agile Prime</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base: { 950:'#080a10', 900:'#0c1017', 850:'#10151f', 800:'#151c28', 700:'#1e2738', 600:'#2a3548' },
+            gold: { DEFAULT:'#c9a84c', light:'#e2c97e', dim:'#8a7230' },
+          },
+          fontFamily: { sans:['DM Sans','system-ui','sans-serif'], mono:['JetBrains Mono','monospace'] },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body { background:#080a10; color:#c8cdd6; font-family:'DM Sans',system-ui,sans-serif; -webkit-font-smoothing:antialiased; }
+    ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:99px; }
+    .panel { background:#10151f; border:1px solid rgba(255,255,255,0.06); border-radius:16px; }
+    .field { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:10px 14px; color:#e2e8f0; font-size:14px; font-family:'DM Sans',sans-serif; outline:none; transition:border-color 0.2s; }
+    .field:focus { border-color:rgba(212,168,67,0.4); box-shadow:0 0 0 3px rgba(212,168,67,0.08); }
+    .field::placeholder { color:#4b5563; }
+    .field[readonly] { opacity:0.5; cursor:not-allowed; }
+    label.role-card input[type=radio] { display:none; }
+    label.role-card div { border:1px solid rgba(255,255,255,0.08); border-radius:12px; padding:16px; text-align:center; transition:all 0.2s; cursor:pointer; }
+    label.role-card input[type=radio]:checked + div { border-color:rgba(212,168,67,0.5); background:rgba(212,168,67,0.08); }
+    label.role-card div:hover { border-color:rgba(255,255,255,0.15); }
+    label.role-card input[disabled] + div { opacity:0.4; cursor:not-allowed; }
+    .toggle-wrap { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; transition:background 0.15s; }
+    .toggle-wrap:hover { background:rgba(255,255,255,0.02); }
+    .toggle { position:relative; width:40px; height:20px; }
+    .toggle input { display:none; }
+    .toggle-slider { position:absolute; inset:0; background:#374151; border-radius:99px; transition:background 0.2s; cursor:pointer; }
+    .toggle-slider:before { content:''; position:absolute; width:16px; height:16px; top:2px; left:2px; background:white; border-radius:50%; transition:transform 0.2s; }
+    .toggle input:checked + .toggle-slider { background:#c9a84c; }
+    .toggle input:checked + .toggle-slider:before { transform:translateX(20px); }
+  </style>
+</head>
+<body class="min-h-screen">
+
+  <%- include('../../partials/navbar') %>
+
+  <% if (typeof flash !== 'undefined' && flash.success) { %>
+    <div id="flash-success" class="fixed top-20 right-4 z-50 max-w-sm bg-emerald-600/90 backdrop-blur-md text-white px-5 py-3 rounded-xl shadow-2xl text-sm font-medium border border-white/10"><%= flash.success %></div>
+  <% } %>
+  <% if (typeof flash !== 'undefined' && flash.error) { %>
+    <div id="flash-error" class="fixed top-20 right-4 z-50 max-w-sm bg-red-600/90 backdrop-blur-md text-white px-5 py-3 rounded-xl shadow-2xl text-sm font-medium border border-white/10"><%= flash.error %></div>
+  <% } %>
+
+  <main class="pt-20 sm:pt-[88px]">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+
+    <!-- Header -->
+    <div class="flex items-center gap-4 mb-8">
+      <a href="/admin/users" class="p-2 rounded-xl text-gray-500 hover:text-white hover:bg-white/5 transition-all">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </a>
+      <div>
+        <h1 class="text-2xl font-bold text-white">Edit User</h1>
+        <p class="text-gray-500 text-sm">Editing <span class="text-white font-semibold">@<%= editUser.username %></span></p>
+      </div>
+    </div>
+
+    <% const isSelf = editUser._id.toString() === currentUser.id; %>
+
+    <form action="/admin/users/<%= editUser._id %>/update" method="POST">
+      <div class="panel p-6 space-y-6 mb-5">
+
+        <!-- Name + Username -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Full Name</label>
+            <input type="text" name="name" value="<%= editUser.name %>" required class="field">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-300 mb-2">Username</label>
+            <div class="relative">
+              <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500 text-sm">@</span>
+              <input type="text" value="<%= editUser.username %>" readonly class="field" style="padding-left:28px">
+            </div>
+            <p class="text-xs text-gray-600 mt-1">Username cannot be changed</p>
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">Email Address</label>
+          <input type="email" name="email" value="<%= editUser.email||'' %>" placeholder="user@agileprime.ae" class="field">
+        </div>
+
+        <!-- Password -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-2">New Password <span class="text-gray-500 font-normal text-xs">(leave blank to keep current)</span></label>
+          <input type="password" name="password" minlength="8" placeholder="Min 8 characters" class="field">
+        </div>
+
+        <!-- Role -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-3">Role</label>
+          <% if (isSelf) { %><p class="text-xs text-yellow-500/70 mb-3">You cannot change your own role.</p><% } %>
+          <div class="grid grid-cols-3 gap-3">
+            <label class="role-card">
+              <input type="radio" name="role" value="superadmin" <%= editUser.role==='superadmin'?'checked':'' %> <%= isSelf?'disabled':'' %> onchange="onRoleChange('superadmin')">
+              <div><div class="text-2xl mb-1">⭐</div><div class="text-sm font-semibold text-white">Super Admin</div><div class="text-xs text-gray-500 mt-1">Full control</div></div>
+            </label>
+            <label class="role-card">
+              <input type="radio" name="role" value="admin" <%= editUser.role==='admin'?'checked':'' %> <%= isSelf?'disabled':'' %> onchange="onRoleChange('admin')">
+              <div><div class="text-2xl mb-1">🔧</div><div class="text-sm font-semibold text-white">Admin</div><div class="text-xs text-gray-500 mt-1">Reports & data</div></div>
+            </label>
+            <label class="role-card">
+              <input type="radio" name="role" value="viewer" <%= editUser.role==='viewer'?'checked':'' %> <%= isSelf?'disabled':'' %> onchange="onRoleChange('viewer')">
+              <div><div class="text-2xl mb-1">👁</div><div class="text-sm font-semibold text-white">Viewer</div><div class="text-xs text-gray-500 mt-1">Read-only</div></div>
+            </label>
+          </div>
+        </div>
+
+        <!-- Permissions -->
+        <div id="permsSection" style="<%= editUser.role==='superadmin' ? 'display:none' : '' %>">
+          <label class="block text-sm font-medium text-gray-300 mb-3">Permissions</label>
+          <div class="panel divide-y divide-white/5" style="border-radius:12px">
+            <%
+              const adminDef = {canViewDashboard:true,canViewReports:true,canViewReportsList:false,canEditReports:false,canManageMasters:true,canExportData:true,canManageUsers:false,canViewAlerts:false,canViewManpowerSummary:true,canSubmitReports:false};
+              const permDefs = [
+                {key:'canViewDashboard',       label:'View Dashboard',              desc:'Access the admin dashboard'},
+                {key:'canViewReports',         label:'View Reports',                desc:'View and search daily reports'},
+                {key:'canViewReportsList',     label:'Reports List Page',           desc:'Access /admin/reports — browse, search and delete reports'},
+                {key:'canEditReports',         label:'Edit Reports',                desc:'Edit submitted daily reports'},
+                {key:'canSubmitReports',       label:'Submit Reports',              desc:'Access the new report form and submit daily reports'},
+                {key:'canManageMasters',       label:'Manage Master Data',          desc:'Add/edit projects, engineers, items'},
+                {key:'canExportData',          label:'Export Data',                 desc:'Export reports to Excel/PDF'},
+                {key:'canManageUsers',         label:'Manage Users',                desc:'Add and edit system users'},
+                {key:'canViewAlerts',          label:'View Missing Reports Alert',  desc:"See daily alert when engineers haven't submitted reports"},
+                {key:'canViewManpowerSummary', label:'View Manpower Summary',       desc:'Access the per-site daily manpower breakdown page'},
+              ];
+              for (const p of permDefs) {
+                const checked = editUser.role==='admin'
+                  ? (typeof editUser.permissions?.[p.key]==='boolean' ? editUser.permissions[p.key] : adminDef[p.key])
+                  : (editUser.permissions?.[p.key]===true);
+            %>
+              <div class="toggle-wrap">
+                <div><div class="text-sm font-medium text-white"><%= p.label %></div><div class="text-xs text-gray-500"><%= p.desc %></div></div>
+                <label class="toggle"><input type="checkbox" name="permissions[<%= p.key %>]" value="on" <%= checked?'checked':'' %>><span class="toggle-slider"></span></label>
+              </div>
+            <% } %>
+          </div>
+        </div>
+
+        <!-- Engineer Link & Project Access -->
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Engineer Account Link</label>
+          <p class="text-xs text-gray-500 mb-3">When set, the report form will auto-fill and lock the engineer field for this user.</p>
+          <select name="linkedEngineer" class="ag-select" style="background-color:#0d1528;color:#e2e8f0">
+            <option value="">— No link (user selects manually) —</option>
+            <% engineers.forEach(e => { %>
+            <option value="<%= e._id %>" <%= editUser.linkedEngineer && editUser.linkedEngineer.toString() === e._id.toString() ? 'selected' : '' %>><%= e.name %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Project Access Restriction</label>
+          <p class="text-xs text-gray-500 mb-3">Leave all unchecked to allow access to all projects. Check specific projects to restrict this user.</p>
+          <div class="panel divide-y divide-white/5" style="border-radius:12px; max-height:220px; overflow-y:auto;">
+            <% if (projects.length === 0) { %>
+              <div class="px-4 py-3 text-xs text-gray-500">No active projects found.</div>
+            <% } else { %>
+              <% const allowedIds = (editUser.allowedProjects || []).map(id => id.toString()); %>
+              <% projects.forEach(p => { %>
+              <label class="toggle-wrap cursor-pointer hover:bg-white/3 transition-colors">
+                <div>
+                  <div class="text-sm font-medium text-white"><%= p.name %></div>
+                  <% if (p.code) { %><div class="text-xs text-gray-500"><%= p.code %></div><% } %>
+                </div>
+                <label class="toggle"><input type="checkbox" name="allowedProjects" value="<%= p._id %>" <%= allowedIds.includes(p._id.toString()) ? 'checked' : '' %>><span class="toggle-slider"></span></label>
+              </label>
+              <% }) %>
+            <% } %>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="flex gap-3 justify-end">
+        <a href="/admin/users" class="px-5 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:bg-white/5 text-sm transition-colors">Cancel</a>
+        <button type="submit" class="px-6 py-2.5 rounded-xl font-semibold text-sm transition-all shadow-lg" style="background:#c9a84c;color:#080a10">Save Changes</button>
+      </div>
+    </form>
+
+  </div>
+  </main>
+
+  <script>
+    function onRoleChange(role) {
+      document.getElementById('permsSection').style.display = role==='superadmin' ? 'none' : 'block';
+    }
+    setTimeout(()=>{
+      document.querySelectorAll('#flash-success,#flash-error').forEach(el=>{el.style.transition='opacity 0.5s';el.style.opacity='0';setTimeout(()=>el.remove(),500);});
+    },4000);
+  </script>
+</body>
+</html>

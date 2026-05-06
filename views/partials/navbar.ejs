@@ -1,0 +1,600 @@
+<%
+  /* ─── helpers (available in every branch) ─── */
+  const _isEng   = typeof adminUser !== 'undefined' && adminUser && !!adminUser.linkedEngineer;
+  const _isAdmin = typeof adminUser !== 'undefined' && adminUser &&
+                   (adminUser.role === 'superadmin' || adminUser.role === 'admin');
+
+  const _defaults = {
+    canViewDashboard: true, canViewReports: true, canViewReportsList: false,
+    canManageMasters: true, canExportData: true,
+    canManageUsers: false,  canViewAlerts: false,
+    canViewManpowerSummary: true, canSubmitReports: false,
+  };
+
+  function _can(perm) {
+    if (!adminUser) return false;
+    if (adminUser.role === 'superadmin') return true;
+    if (adminUser.role === 'admin') {
+      const ex = adminUser.permissions && typeof adminUser.permissions[perm] === 'boolean'
+        ? adminUser.permissions[perm] : undefined;
+      return ex !== undefined ? ex : (_defaults[perm] || false);
+    }
+    return !!(adminUser.permissions && adminUser.permissions[perm]);
+  }
+
+  /* current path for active-link highlight */
+  const _path = typeof locals !== 'undefined' && locals.currentPath
+    ? locals.currentPath
+    : (typeof req !== 'undefined' ? req.path : '');
+  function _active(href) {
+    return _path === href || _path.startsWith(href + '/') ? 'nav-active' : '';
+  }
+%>
+
+<!-- ═══════════════════════════════════════════
+     STYLES  (injected once)
+════════════════════════════════════════════ -->
+<style>
+/* ── base nav ── */
+#ag-navbar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+  height: 60px;
+  background: rgba(8,15,35,0.92);
+  backdrop-filter: blur(20px) saturate(160%);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  box-shadow: 0 2px 24px rgba(0,0,0,0.35);
+  display: flex; align-items: center;
+  padding: 0 16px;
+  transition: background .3s;
+}
+#ag-navbar .nav-inner {
+  width: 100%; max-width: 1320px; margin: 0 auto;
+  display: flex; align-items: center; gap: 8px;
+}
+
+/* ── logo ── */
+#ag-navbar .nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none; flex-shrink: 0;
+  margin-right: 4px;
+}
+#ag-navbar .nav-logo img { height: 36px; width: auto; object-fit: contain; }
+#ag-navbar .nav-logo-text {
+  font-size: 13px; font-weight: 600;
+  color: rgba(255,255,255,0.85); letter-spacing: .03em;
+  white-space: nowrap;
+}
+#ag-navbar .nav-logo-text strong { color: var(--accent, #C9A84C); }
+
+/* ── desktop links ── */
+.nav-links {
+  display: flex; align-items: center; gap: 2px;
+  flex: 1; overflow: hidden;
+}
+.nav-links a {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12.5px; font-weight: 500;
+  color: rgba(200,210,230,0.75);
+  padding: 7px 11px; border-radius: 8px;
+  white-space: nowrap; text-decoration: none;
+  border: 1px solid transparent;
+  transition: color .18s, background .18s, border-color .18s;
+  position: relative;
+}
+.nav-links a:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.06);
+}
+.nav-links a.nav-active {
+  color: var(--accent, #C9A84C);
+  background: rgba(201,168,76,0.09);
+  border-color: rgba(201,168,76,0.18);
+}
+.nav-links a.nav-users {
+  color: rgba(201,168,76,0.8);
+  border-color: rgba(201,168,76,0.22);
+}
+.nav-links a.nav-users:hover { background: rgba(201,168,76,0.1); color: var(--accent,#C9A84C); }
+.nav-links a svg { flex-shrink: 0; }
+
+/* ── divider ── */
+.nav-divider { width: 1px; height: 28px; background: rgba(255,255,255,0.08); margin: 0 4px; flex-shrink:0; }
+
+/* ── right cluster ── */
+.nav-right {
+  display: flex; align-items: center; gap: 8px;
+  flex-shrink: 0; margin-left: 8px;
+}
+.nav-user-info {
+  display: flex; flex-direction: column; align-items: flex-end;
+  line-height: 1.2;
+}
+.nav-user-info .name  { font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.85); }
+.nav-user-info .role  { font-size: 10px; color: rgba(160,175,200,0.6); text-transform: capitalize; }
+
+/* ── theme switcher ── */
+.ag-theme-switcher { position: relative; }
+.ag-theme-btn {
+  display: flex; align-items: center; justify-content: center;
+  width: 34px; height: 34px; border-radius: 9px; cursor: pointer;
+  background: var(--accent-a08, rgba(201,168,76,0.08));
+  border: 1px solid var(--accent-a15, rgba(201,168,76,0.15));
+  transition: background .18s, border-color .18s;
+}
+.ag-theme-btn:hover { background: rgba(201,168,76,0.15); }
+.ag-theme-panel {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  background: rgba(10,18,42,0.98); backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+  padding: 6px; display: flex; gap: 6px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 200;
+  animation: fadeDown .18s ease;
+}
+.ag-theme-panel.hidden { display: none; }
+@keyframes fadeDown { from { opacity:0; transform:translateY(-6px) } to { opacity:1; transform:none } }
+.ag-theme-swatch {
+  width: 28px; height: 28px; border-radius: 7px; border: 2px solid transparent;
+  cursor: pointer; position: relative; overflow: hidden; transition: border-color .15s;
+}
+.ag-theme-swatch[data-t="navy"]  { background: linear-gradient(135deg, #0d1b3e 50%, #C9A84C 50%); }
+.ag-theme-swatch[data-t="cyan"]  { background: linear-gradient(135deg, #0d2535 50%, #00c4d4 50%); }
+.ag-theme-swatch[data-t="amber"] { background: linear-gradient(135deg, #1e1000 50%, #f59e0b 50%); }
+.ag-theme-swatch:hover, .ag-theme-swatch.active { border-color: rgba(255,255,255,0.5); }
+.ag-theme-swatch::after {
+  content: attr(data-label);
+  position: absolute; bottom: -22px; left: 50%; transform: translateX(-50%);
+  background: rgba(10,18,42,0.95); color: #fff; font-size: 10px;
+  padding: 2px 6px; border-radius: 4px; white-space: nowrap;
+  opacity: 0; transition: opacity .15s;
+  pointer-events: none;
+}
+.ag-theme-swatch:hover::after { opacity: 1; }
+
+/* ── logout btn ── */
+.nav-logout {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: rgba(248,113,113,0.65);
+  padding: 7px 10px; border-radius: 8px; cursor: pointer;
+  border: 1px solid transparent; background: none;
+  transition: color .18s, background .18s;
+}
+.nav-logout:hover { color: #f87171; background: rgba(239,68,68,0.08); }
+
+/* ════════════════════════════════════════
+   MOBILE  (< 1024 px)
+════════════════════════════════════════ */
+@media (max-width: 1023px) {
+  #ag-navbar { height: 56px; }
+  .nav-links, .nav-divider, .nav-user-info { display: none !important; }
+  .nav-right { gap: 6px; }
+}
+
+/* hamburger */
+.nav-ham {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 36px; height: 36px; border-radius: 9px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  cursor: pointer; color: rgba(220,225,235,0.8);
+  transition: background .18s, color .18s;
+}
+.nav-ham:hover { background: rgba(255,255,255,0.1); color: #fff; }
+@media (max-width:1023px) { .nav-ham { display: flex; } }
+
+/* ── mobile drawer ── */
+#ag-drawer {
+  position: fixed;
+  top: 56px; left: 0; right: 0; bottom: 0;
+  z-index: 49;
+  display: flex; flex-direction: column;
+  background: rgba(7,13,32,0.97);
+  backdrop-filter: blur(24px);
+  transform: translateX(100%);
+  transition: transform .28s cubic-bezier(.4,0,.2,1);
+  overflow-y: auto;
+  padding: 12px 16px 40px;
+  gap: 4px;
+}
+#ag-drawer.open { transform: translateX(0); }
+
+/* drawer user badge */
+.drawer-user {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 12px; margin-bottom: 6px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 12px; border: 1px solid rgba(255,255,255,0.07);
+}
+.drawer-avatar {
+  width: 40px; height: 40px; border-radius: 10px;
+  background: linear-gradient(135deg, rgba(201,168,76,0.2), rgba(201,168,76,0.05));
+  border: 1px solid rgba(201,168,76,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: var(--accent,#C9A84C);
+  flex-shrink: 0;
+}
+.drawer-user-info .dname { font-size: 14px; font-weight: 600; color: #fff; }
+.drawer-user-info .drole { font-size: 11px; color: rgba(160,175,200,0.6); text-transform: capitalize; margin-top: 1px; }
+
+/* drawer links */
+.drawer-link {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 14px; font-weight: 500;
+  color: rgba(200,210,230,0.75);
+  padding: 12px 14px; border-radius: 10px;
+  text-decoration: none; border: 1px solid transparent;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.drawer-link:hover, .drawer-link:active {
+  color: #fff; background: rgba(255,255,255,0.07);
+}
+.drawer-link.nav-active {
+  color: var(--accent,#C9A84C);
+  background: rgba(201,168,76,0.08);
+  border-color: rgba(201,168,76,0.18);
+}
+.drawer-link.nav-users {
+  color: rgba(201,168,76,0.85);
+  border-color: rgba(201,168,76,0.2);
+  margin-top: 4px;
+}
+.drawer-link svg { flex-shrink: 0; opacity: .8; }
+.drawer-link.nav-active svg, .drawer-link:hover svg { opacity: 1; }
+
+/* section label inside drawer */
+.drawer-section {
+  font-size: 10px; font-weight: 700; letter-spacing: .1em;
+  text-transform: uppercase; color: rgba(160,175,200,0.35);
+  padding: 10px 14px 4px;
+}
+
+/* drawer separator */
+.drawer-sep { height: 1px; background: rgba(255,255,255,0.07); margin: 6px 0; }
+
+/* drawer logout */
+.drawer-logout {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 14px; font-weight: 500;
+  color: rgba(248,113,113,0.7);
+  padding: 12px 14px; border-radius: 10px;
+  border: none; background: none; cursor: pointer; width: 100%;
+  transition: background .15s, color .15s;
+}
+.drawer-logout:hover { color: #f87171; background: rgba(239,68,68,0.08); }
+
+/* overlay */
+#ag-drawer-overlay {
+  position: fixed; inset: 0; z-index: 48;
+  background: rgba(0,0,0,0.5);
+  opacity: 0; pointer-events: none;
+  transition: opacity .28s;
+}
+#ag-drawer-overlay.open { opacity: 1; pointer-events: all; }
+
+/* scrollbar in drawer */
+#ag-drawer::-webkit-scrollbar { width: 4px; }
+#ag-drawer::-webkit-scrollbar-track { background: transparent; }
+#ag-drawer::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+</style>
+
+<!-- ═══════════════════════════════════════════
+     NAVBAR
+════════════════════════════════════════════ -->
+<nav id="ag-navbar" role="navigation" aria-label="Main navigation">
+  <div class="nav-inner">
+
+    <!-- Logo -->
+    <a href="/" class="nav-logo" aria-label="Home">
+      <img src="/assets/images/logo.png" alt="Agile Prime" />
+      <span class="nav-logo-text hidden sm:block">
+        AGILE PRIME <strong>DAILY</strong>
+      </span>
+    </a>
+
+    <% if (typeof adminUser !== 'undefined' && adminUser) { %>
+
+      <!-- ── Desktop Links ── -->
+      <nav class="nav-links" aria-label="Site navigation">
+
+        <% if (_isEng) { %>
+          <a href="/reports/new" class="<%= _active('/reports/new') %>">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+            New Report
+          </a>
+        <% } else { %>
+
+          <% if (_can('canSubmitReports')) { %>
+            <a href="/reports/new" class="<%= _active('/reports/new') %>">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+              New Report
+            </a>
+          <% } %>
+
+          <% if (_can('canViewDashboard')) { %>
+            <a href="/admin/dashboard" class="<%= _active('/admin/dashboard') %>">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+              Dashboard
+            </a>
+          <% } %>
+          <% if (_can('canViewReportsList')) { %>
+            <a href="/admin/reports" class="<%= _active('/admin/reports') %>">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>
+              Reports
+            </a>
+          <% } %>
+          <% if (_can('canViewDashboard')) { %>
+            <a href="/admin/projects" class="<%= _active('/admin/projects') %>">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M3 12h18M3 17h18"/></svg>
+              Projects
+            </a>
+            <a href="/admin/workforce" class="<%= _active('/admin/workforce') %>">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              Workforce
+            </a>
+
+            <% if (_can('canViewManpowerSummary')) { %>
+              <a href="/admin/manpower-summary" class="<%= _active('/admin/manpower-summary') %>">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                MP Summary
+              </a>
+              <a href="/admin/manpower-breakdown" class="<%= _active('/admin/manpower-breakdown') %>">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                MP Breakdown
+              </a>
+            <% } %>
+          <% } %>
+
+          <% if (_can('canManageMasters')) { %>
+            <a href="/admin/master-data" class="<%= _active('/admin/master-data') %>">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 4.93 19.07 10 10 0 0 0 19.07 4.93z"/></svg>
+              Master Data
+            </a>
+          <% } %>
+
+          <% if (adminUser.role === 'superadmin' || _can('canManageUsers')) { %>
+            <a href="/admin/users" class="nav-users <%= _active('/admin/users') %>">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+              Users
+            </a>
+          <% } %>
+
+        <% } %>
+      </nav>
+
+      <!-- ── Right Cluster ── -->
+      <div class="nav-right">
+
+        <!-- User info (desktop) -->
+        <div class="nav-user-info hidden lg:flex">
+          <span class="name"><%= adminUser.name %></span>
+          <span class="role"><%= _isEng ? 'Engineer' : adminUser.role %></span>
+        </div>
+
+        <div class="nav-divider hidden lg:block"></div>
+
+        <!-- Theme Switcher -->
+        <div class="ag-theme-switcher">
+          <button class="ag-theme-btn" onclick="agToggleTheme(event)" aria-label="Change theme" title="Change theme">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent,#C9A84C)">
+              <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+            </svg>
+          </button>
+          <div id="ag-theme-panel" class="ag-theme-panel hidden" onclick="event.stopPropagation()">
+            <button class="ag-theme-swatch" data-t="navy"  data-label="Navy"  onclick="setTheme('navy')"  title="Navy"></button>
+            <button class="ag-theme-swatch" data-t="cyan"  data-label="Cyan"  onclick="setTheme('cyan')"  title="Cyan"></button>
+            <button class="ag-theme-swatch" data-t="amber" data-label="Amber" onclick="setTheme('amber')" title="Amber"></button>
+          </div>
+        </div>
+
+        <!-- Logout (desktop only) -->
+        <form action="/admin/logout" method="POST" class="hidden lg:block">
+          <button type="submit" class="nav-logout" title="Sign out">
+            <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+            </svg>
+            Sign out
+          </button>
+        </form>
+
+        <!-- Hamburger (mobile only) -->
+        <button class="nav-ham" id="ag-ham-btn" onclick="agToggleDrawer()" aria-label="Open menu" aria-expanded="false" aria-controls="ag-drawer">
+          <svg id="ag-icon-ham" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/>
+          </svg>
+          <svg id="ag-icon-x" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+
+      </div><!-- end nav-right -->
+
+    <% } else { %>
+      <!-- not logged in -->
+      <div style="flex:1"></div>
+      <a href="/admin/login" style="font-size:13px;color:rgba(200,210,230,.75);padding:7px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.1);text-decoration:none;transition:color .18s,background .18s;">
+        Sign In
+      </a>
+    <% } %>
+
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     MOBILE DRAWER + OVERLAY
+════════════════════════════════════════════ -->
+<% if (typeof adminUser !== 'undefined' && adminUser) { %>
+<div id="ag-drawer-overlay" onclick="agCloseDrawer()"></div>
+
+<aside id="ag-drawer" aria-label="Mobile navigation" role="navigation">
+
+  <!-- User badge -->
+  <div class="drawer-user">
+    <div class="drawer-avatar">
+      <%= adminUser.name ? adminUser.name.charAt(0).toUpperCase() : '?' %>
+    </div>
+    <div class="drawer-user-info">
+      <div class="dname"><%= adminUser.name %></div>
+      <div class="drole"><%= _isEng ? 'Engineer' : adminUser.role %></div>
+    </div>
+  </div>
+
+  <!-- Links -->
+  <% if (_isEng) { %>
+    <a href="/reports/new" class="drawer-link <%= _active('/reports/new') %>" onclick="agCloseDrawer()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+      New Report
+    </a>
+  <% } else { %>
+
+    <% if (_can('canSubmitReports')) { %>
+      <a href="/reports/new" class="drawer-link <%= _active('/reports/new') %>" onclick="agCloseDrawer()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
+        New Report
+      </a>
+    <% } %>
+
+    <% if (_can('canViewDashboard')) { %>
+      <div class="drawer-section">Overview</div>
+      <a href="/admin/dashboard" class="drawer-link <%= _active('/admin/dashboard') %>" onclick="agCloseDrawer()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+    <% } %>
+    <% if (_can('canViewReportsList')) { %>
+      <a href="/admin/reports" class="drawer-link <%= _active('/admin/reports') %>" onclick="agCloseDrawer()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6M9 16h6M9 8h6M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/></svg>
+        Reports
+      </a>
+    <% } %>
+    <% if (_can('canViewDashboard')) { %>
+      <a href="/admin/projects" class="drawer-link <%= _active('/admin/projects') %>" onclick="agCloseDrawer()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7h18M3 12h18M3 17h18"/></svg>
+        Projects
+      </a>
+
+      <div class="drawer-section">Workforce</div>
+      <a href="/admin/workforce" class="drawer-link <%= _active('/admin/workforce') %>" onclick="agCloseDrawer()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        Workforce
+      </a>
+      <% if (_can('canViewManpowerSummary')) { %>
+        <a href="/admin/manpower-summary" class="drawer-link <%= _active('/admin/manpower-summary') %>" onclick="agCloseDrawer()">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+          MP Summary
+        </a>
+        <a href="/admin/manpower-breakdown" class="drawer-link <%= _active('/admin/manpower-breakdown') %>" onclick="agCloseDrawer()">
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+          MP Breakdown
+        </a>
+      <% } %>
+    <% } %>
+
+    <% if (_can('canManageMasters')) { %>
+      <div class="drawer-section">Configuration</div>
+      <a href="/admin/master-data" class="drawer-link <%= _active('/admin/master-data') %>" onclick="agCloseDrawer()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 1 0 4.93 19.07 10 10 0 0 0 19.07 4.93z"/></svg>
+        Master Data
+      </a>
+    <% } %>
+
+    <% if (adminUser.role === 'superadmin' || _can('canManageUsers')) { %>
+      <a href="/admin/users" class="drawer-link nav-users <%= _active('/admin/users') %>" onclick="agCloseDrawer()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        Users
+      </a>
+    <% } %>
+
+  <% } %>
+
+  <div class="drawer-sep" style="margin-top:auto"></div>
+
+  <!-- Logout -->
+  <form action="/admin/logout" method="POST">
+    <button type="submit" class="drawer-logout">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/>
+      </svg>
+      Sign Out
+    </button>
+  </form>
+
+</aside>
+<% } %>
+
+<!-- ═══════════════════════════════════════════
+     SCRIPTS
+════════════════════════════════════════════ -->
+<script>
+(function () {
+  /* ── Drawer ── */
+  function agOpenDrawer() {
+    const d  = document.getElementById('ag-drawer');
+    const ov = document.getElementById('ag-drawer-overlay');
+    const btn = document.getElementById('ag-ham-btn');
+    if (!d) return;
+    d.classList.add('open');
+    ov && ov.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('ag-icon-ham').style.display = 'none';
+    document.getElementById('ag-icon-x').style.display   = '';
+    btn && btn.setAttribute('aria-expanded', 'true');
+  }
+  function agCloseDrawer() {
+    const d  = document.getElementById('ag-drawer');
+    const ov = document.getElementById('ag-drawer-overlay');
+    const btn = document.getElementById('ag-ham-btn');
+    if (!d) return;
+    d.classList.remove('open');
+    ov && ov.classList.remove('open');
+    document.body.style.overflow = '';
+    document.getElementById('ag-icon-ham').style.display = '';
+    document.getElementById('ag-icon-x').style.display   = 'none';
+    btn && btn.setAttribute('aria-expanded', 'false');
+  }
+  window.agToggleDrawer = function () {
+    const d = document.getElementById('ag-drawer');
+    d && d.classList.contains('open') ? agCloseDrawer() : agOpenDrawer();
+  };
+  window.agCloseDrawer = agCloseDrawer;
+
+  /* Close on Escape */
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') agCloseDrawer();
+  });
+
+  /* ── Theme panel ── */
+  window.agToggleTheme = function (e) {
+    e.stopPropagation();
+    ['ag-theme-panel'].forEach(function (id) {
+      const p = document.getElementById(id);
+      if (p) p.classList.toggle('hidden');
+    });
+  };
+  document.addEventListener('click', function () {
+    document.getElementById('ag-theme-panel')?.classList.add('hidden');
+  });
+
+  /* ── Active swatch highlight ── */
+  function markActiveSwatch(theme) {
+    document.querySelectorAll('.ag-theme-swatch').forEach(function (s) {
+      s.classList.toggle('active', s.dataset.t === theme);
+    });
+  }
+  const currentTheme = document.documentElement.dataset.theme || localStorage.getItem('ag-theme') || 'navy';
+  markActiveSwatch(currentTheme);
+
+  /* ── Scroll shadow ── */
+  window.addEventListener('scroll', function () {
+    const nav = document.getElementById('ag-navbar');
+    if (!nav) return;
+    if (window.scrollY > 10) {
+      nav.style.background = 'rgba(6,12,28,0.97)';
+      nav.style.boxShadow  = '0 2px 32px rgba(0,0,0,0.5)';
+    } else {
+      nav.style.background = 'rgba(8,15,35,0.92)';
+      nav.style.boxShadow  = '0 2px 24px rgba(0,0,0,0.35)';
+    }
+  }, { passive: true });
+})();
+</script>

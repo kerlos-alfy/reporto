@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= (typeof adminUser !== 'undefined' && adminUser && adminUser.theme) ? adminUser.theme : 'navy' %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/logo.png">
+<link rel="apple-touch-icon" href="/assets/images/logo.png">
+  <title><%= typeof title !== 'undefined' ? title + ' — ' : '' %>AGILE PRIME DAILY REPORT</title>
+
+  <!-- Theme: apply before render to prevent flash -->
+  <script>
+    (function(){var t=localStorage.getItem('ag_theme');if(t&&['navy','cyan','amber'].includes(t)){document.documentElement.setAttribute('data-theme',t);if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}})();
+  </script>
+
+  <meta name="description" content="Agile Prime Daily Report System">
+  <meta name="theme-color" content="#0b1120">
+
+  <link rel="icon" href="/assets/images/logo.png" sizes="any">
+  <link rel="apple-touch-icon" sizes="180x180" href="/assets/images/logo.png">
+
+  <!-- Fonts — single consistent set across all pages -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              950: 'var(--surface-950)',
+              900: 'var(--surface-900)',
+              850: 'var(--surface-850)',
+              800: 'var(--surface-800)',
+              750: 'var(--surface-800)',
+              700: 'var(--surface-700)',
+              600: 'var(--surface-700)',
+              500: 'var(--surface-700)',
+              gold:          'var(--accent)',
+              'gold-light':  'var(--accent-light)',
+              'gold-dim':    'var(--accent-dim)',
+              'gold-glow':   'var(--accent-a08)',
+              'gold-border': 'var(--accent-a15)',
+            }
+          },
+          fontFamily: {
+            sans: ['DM Sans', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        }
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="/css/app.css">
+  <%- typeof headContent !== 'undefined' ? headContent : '' %>
+  <script src="/js/theme.js"></script>
+</head>
+
+<body class="bg-brand-950 text-gray-200 font-sans min-h-screen antialiased selection:bg-brand-gold/20 selection:text-white">
+
+  <%- include('../partials/navbar') %>
+
+  <!-- Flash Messages -->
+  <% if (typeof flash !== 'undefined' && flash.success) { %>
+    <div id="flash-success" class="ag-flash ag-flash-success" role="alert" aria-live="polite">
+      <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+      <span class="text-sm font-medium flex-1"><%= flash.success %></span>
+      <button class="ag-flash-close" onclick="this.closest('.ag-flash').remove()" aria-label="Dismiss">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+  <% } %>
+
+  <% if (typeof flash !== 'undefined' && flash.error) { %>
+    <div id="flash-error" class="ag-flash ag-flash-error" role="alert" aria-live="assertive">
+      <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/></svg>
+      <span class="text-sm font-medium flex-1"><%= flash.error %></span>
+      <button class="ag-flash-close" onclick="this.closest('.ag-flash').remove()" aria-label="Dismiss">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+  <% } %>
+
+  <main class="pt-20 sm:pt-[88px]">
+    <div class="min-h-[calc(100vh-80px)]">
+      <%- body %>
+    </div>
+  </main>
+
+  <script>
+    // Auto-dismiss flash messages after 6s; user can also close manually
+    document.addEventListener('DOMContentLoaded', function () {
+      document.querySelectorAll('.ag-flash').forEach(el => {
+        setTimeout(() => {
+          el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(-6px)';
+          setTimeout(() => el.remove(), 400);
+        }, 6000);
+      });
+    });
+  </script>
+  <%- typeof footerScripts !== 'undefined' ? footerScripts : '' %>
+  </body>
+</html>

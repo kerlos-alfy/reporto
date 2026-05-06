@@ -1,0 +1,1754 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= (typeof adminUser !== 'undefined' && adminUser && adminUser.theme) ? adminUser.theme : 'navy' %>">
+<head>
+  <!-- Theme: apply before render to prevent flash -->
+  <script>
+    (function(){var t=localStorage.getItem('ag_theme');if(t&&['navy','cyan','amber'].includes(t)){document.documentElement.setAttribute('data-theme',t);if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}})();
+  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/logo.png">
+<link rel="apple-touch-icon" href="/assets/images/logo.png">
+  <title>Master Data — AGILE PRIME DAILY REPORT</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              950: 'var(--surface-950)',
+              900: 'var(--surface-900)',
+              850: 'var(--surface-850)',
+              800: 'var(--surface-800)',
+              750: 'var(--surface-800)',
+              700: 'var(--surface-700)',
+              600: 'var(--surface-700)',
+              500: 'var(--surface-700)',
+              gold:         'var(--accent)',
+              'gold-light': 'var(--accent-light)',
+              'gold-dim':   'var(--accent-dim)',
+              'gold-glow':  'var(--accent-a08)',
+              'gold-border':'var(--accent-a15)',
+            }
+          },
+          fontFamily: {
+            sans: ['DM Sans', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* ── Base ── */
+    * { box-sizing: border-box; }
+    body { background: #06080f; }
+
+    /* ── Animated gradient mesh background ── */
+    .mesh-bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% 40%, rgba(201,168,76,.06) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 60% at 80% 20%, rgba(30,64,120,.12) 0%, transparent 50%),
+        radial-gradient(ellipse 50% 40% at 50% 90%, rgba(201,168,76,.04) 0%, transparent 50%);
+      animation: meshShift 20s ease-in-out infinite alternate;
+    }
+    @keyframes meshShift {
+      0%   { opacity: .7; }
+      100% { opacity: 1; }
+    }
+
+    /* ── Glass card ── */
+    .glass {
+      background: linear-gradient(135deg, rgba(11,17,32,.85) 0%, rgba(15,23,42,.75) 100%);
+      backdrop-filter: blur(24px) saturate(1.2);
+      -webkit-backdrop-filter: blur(24px) saturate(1.2);
+      border: 1px solid rgba(255,255,255,.06);
+    }
+    .glass-inner {
+      background: rgba(6,8,15,.5);
+      border: 1px solid rgba(255,255,255,.04);
+    }
+
+    /* ── Tab pill ── */
+    .tab-btn { position: relative; transition: all .25s ease; cursor: pointer; }
+    .tab-btn.active-tab {
+      background: linear-gradient(135deg, #c9a84c 0%, #e2c97e 100%);
+      color: #06080f;
+      font-weight: 700;
+      box-shadow: 0 4px 20px rgba(201,168,76,.25);
+    }
+    .tab-btn:not(.active-tab) { color: #9ca3af; }
+    .tab-btn:not(.active-tab):hover { color: #e5e7eb; background: rgba(255,255,255,.04); }
+
+    /* ── Stat card hover ── */
+    .stat-card {
+      transition: transform .3s ease, box-shadow .3s ease;
+    }
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(0,0,0,.4);
+    }
+
+    /* ── Glow ring on focus ── */
+    input:focus, select:focus {
+      border-color: rgba(201,168,76,.45) !important;
+      box-shadow: 0 0 0 3px rgba(201,168,76,.08);
+    }
+
+    /* ── Row animations ── */
+    .searchable-row { transition: all .3s ease; }
+    .searchable-row.hidden { opacity: 0; max-height: 0; overflow: hidden; margin: 0; padding: 0; border: none; }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-12px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .row-enter { animation: slideIn .35s cubic-bezier(.22,.61,.36,1) forwards; }
+
+    @keyframes fadeScale {
+      from { opacity: 0; transform: scale(.92); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .fade-scale-enter { animation: fadeScale .3s ease forwards; }
+
+    /* ── Toggle switch ── */
+    .toggle-switch {
+      width: 36px; height: 20px;
+      border-radius: 10px;
+      position: relative;
+      cursor: pointer;
+      transition: background .25s ease;
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      top: 2px; left: 2px;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: white;
+      transition: transform .25s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    }
+    .toggle-switch.on { background: #10b981; }
+    .toggle-switch.off { background: rgba(255,255,255,.15); }
+    .toggle-switch.on::after { transform: translateX(16px); }
+
+    /* ── Inline edit ── */
+    .inline-edit-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1.5px solid rgba(201,168,76,.5);
+      outline: none;
+      color: white;
+      font-weight: 500;
+      font-size: 0.875rem;
+      padding: 2px 0;
+      width: 100%;
+    }
+
+    /* ── Action icons ── */
+    .action-btn {
+      width: 30px; height: 30px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 8px;
+      transition: all .2s ease;
+      cursor: pointer;
+      border: 1px solid transparent;
+    }
+    .action-btn:hover { background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.1); }
+    .action-btn.danger:hover { background: rgba(239,68,68,.1); border-color: rgba(239,68,68,.2); }
+
+    /* ── Toast ── */
+    .toast-enter { animation: toastSlide .35s cubic-bezier(.22,.61,.36,1) forwards; }
+    @keyframes toastSlide {
+      from { opacity: 0; transform: translateX(40px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+    .toast-exit { animation: toastOut .25s ease forwards; }
+    @keyframes toastOut {
+      to { opacity: 0; transform: translateX(40px); }
+    }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,.2); }
+
+    /* ── Tab fade edge for mobile ── */
+    .tab-scroll-wrapper {
+      position: relative;
+    }
+    .tab-scroll-wrapper::after {
+      content: '';
+      position: absolute;
+      right: 0; top: 0; bottom: 0;
+      width: 40px;
+      background: linear-gradient(to right, transparent, rgba(11,17,32,.95));
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .3s ease;
+    }
+    .tab-scroll-wrapper.show-fade::after { opacity: 1; }
+
+    /* ── Skeleton pulse ── */
+    .skeleton-pulse {
+      background: linear-gradient(90deg, rgba(255,255,255,.03) 25%, rgba(255,255,255,.06) 50%, rgba(255,255,255,.03) 75%);
+      background-size: 200% 100%;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* ── Confirm modal ── */
+    .modal-overlay { transition: opacity .25s ease; }
+    .modal-card {
+      transition: transform .3s cubic-bezier(.22,.61,.36,1), opacity .25s ease;
+    }
+    .modal-hidden .modal-overlay { opacity: 0; }
+    .modal-hidden .modal-card { opacity: 0; transform: scale(.95) translateY(8px); }
+    #mobile-menu {
+  transition: all 0.3s ease;
+}
+  </style>
+  <script src="/js/theme.js"></script>
+</head>
+<body class="text-gray-200 font-sans min-h-screen relative">
+  <div class="mesh-bg"></div>
+
+  <%- include('../partials/navbar') %>
+
+  <main class="relative z-10 pt-20 pb-16 px-4 sm:px-6">
+    <div class="max-w-7xl mx-auto">
+
+      <!-- ═══════ HEADER ═══════ -->
+      <div class="mb-8 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <div class="inline-flex items-center gap-2 rounded-full border border-brand-gold/20 bg-brand-gold/5 px-3.5 py-1.5 text-xs font-semibold text-brand-gold mb-3 tracking-wide uppercase">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+            Admin Panel
+          </div>
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-white leading-tight">
+            Master Data<span class="text-brand-gold">.</span>
+          </h1>
+          <p class="text-sm text-gray-400 mt-2 max-w-xl leading-relaxed">
+            Engineers, projects, levels, elements & activities — all in one place.
+          </p>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="stat-card glass rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              <div class="text-[11px] text-gray-500 uppercase tracking-wider font-medium">Engineers</div>
+            </div>
+            <div class="text-2xl font-extrabold text-white font-mono" id="statEngineers"><%= engineers.length %></div>
+          </div>
+          <div class="stat-card glass rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg bg-brand-gold/10 flex items-center justify-center text-brand-gold">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+              </div>
+              <div class="text-[11px] text-gray-500 uppercase tracking-wider font-medium">Projects</div>
+            </div>
+            <div class="text-2xl font-extrabold text-white font-mono" id="statProjects"><%= projects.length %></div>
+          </div>
+          <div class="stat-card glass rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+              </div>
+              <div class="text-[11px] text-gray-500 uppercase tracking-wider font-medium">Elements</div>
+            </div>
+            <div class="text-2xl font-extrabold text-white font-mono" id="statElements"><%= elements.length %></div>
+          </div>
+          <div class="stat-card glass rounded-2xl p-4">
+            <div class="flex items-center gap-2 mb-2">
+              <div class="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center text-violet-400">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </div>
+              <div class="text-[11px] text-gray-500 uppercase tracking-wider font-medium">Activities</div>
+            </div>
+            <div class="text-2xl font-extrabold text-white font-mono" id="statActivities"><%= activities.length %></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══════ FLASH ═══════ -->
+      <% if (typeof flash !== 'undefined' && flash.success) { %>
+        <div class="mb-5 glass rounded-2xl border-emerald-500/20 px-5 py-3.5 text-sm text-emerald-400 flex items-center gap-3 fade-scale-enter">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+          <%= flash.success %>
+        </div>
+      <% } %>
+      <% if (typeof flash !== 'undefined' && flash.error) { %>
+        <div class="mb-5 glass rounded-2xl border-red-500/20 px-5 py-3.5 text-sm text-red-400 flex items-center gap-3 fade-scale-enter">
+          <svg class="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+          <%= flash.error %>
+        </div>
+      <% } %>
+
+      <!-- ═══════ TOOLBAR ═══════ -->
+      <div class="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div class="tab-scroll-wrapper">
+          <div class="inline-flex glass rounded-2xl p-1.5 overflow-x-auto gap-1" id="tabBar">
+            <button class="tab-btn active-tab px-5 py-2.5 text-sm font-medium rounded-xl whitespace-nowrap" data-tab="engineers">
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                Engineers
+              </span>
+            </button>
+            <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-xl whitespace-nowrap" data-tab="projects">
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/></svg>
+                Projects
+              </span>
+            </button>
+            <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-xl whitespace-nowrap" data-tab="elements">
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+                Elements
+              </span>
+            </button>
+            <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-xl whitespace-nowrap" data-tab="activities">
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                Activities
+              </span>
+            </button>
+            <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-xl whitespace-nowrap" data-tab="suppliers">
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 18l-6-6 6-6M16 6l6 6-6 6"/></svg>
+                Suppliers
+              </span>
+            </button>
+            <button class="tab-btn px-5 py-2.5 text-sm font-medium rounded-xl whitespace-nowrap" data-tab="subcontractors">
+              <span class="flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
+                Subcontractors
+              </span>
+            </button>
+          </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+          <div class="relative min-w-[260px]">
+            <svg class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            <input
+              id="globalSearch"
+              type="text"
+              placeholder="Search..."
+              class="w-full glass rounded-2xl pl-10 pr-4 py-3 text-sm text-white placeholder:text-gray-500 outline-none transition-all duration-200"
+            />
+          </div>
+          <select
+            id="statusFilter"
+            class="glass rounded-2xl px-4 py-3 text-sm text-white outline-none cursor-pointer transition-all duration-200" style="background-color:#0d1528;color:#e2e8f0"
+          >
+            <option value="all">All Status</option>
+            <option value="active">Active</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ═══════ TAB: ENGINEERS ═══════ -->
+      <section class="tab-panel" data-panel="engineers">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div class="xl:col-span-2 glass rounded-3xl overflow-hidden">
+            <div class="flex items-center justify-between px-6 py-5 border-b border-white/5">
+              <div>
+                <h2 class="text-lg font-bold text-white">Engineers</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Click name to edit · Toggle switch for status</p>
+              </div>
+              <div class="text-xs text-gray-500 font-mono" id="engineerCount"><%= engineers.length %> total</div>
+            </div>
+
+            <div id="engineersEmptyState" class="<%= engineers.length ? 'hidden' : '' %> p-12 text-center">
+              <div class="w-16 h-16 rounded-2xl bg-brand-gold/10 flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8 text-brand-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+              </div>
+              <div class="text-white font-semibold">No engineers yet</div>
+              <div class="text-sm text-gray-500 mt-1">Add your first one from the panel →</div>
+            </div>
+
+            <div class="<%= !engineers.length ? 'hidden' : '' %> overflow-x-auto" id="engineersTableWrapper">
+              <table class="w-full text-sm">
+                <thead>
+                  <tr class="border-b border-white/5">
+                    <th class="text-left px-6 py-3.5 text-[11px] uppercase tracking-wider text-gray-500 font-semibold">Name</th>
+                    <th class="text-center px-4 py-3.5 text-[11px] uppercase tracking-wider text-gray-500 font-semibold w-24">Status</th>
+                    <th class="text-center px-4 py-3.5 text-[11px] uppercase tracking-wider text-gray-500 font-semibold w-24">Alerts</th>
+                    <th class="text-right px-6 py-3.5 text-[11px] uppercase tracking-wider text-gray-500 font-semibold w-28">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="engineersList">
+                  <% engineers.forEach(e => { %>
+                    <tr
+                      class="border-t border-white/[0.03] hover:bg-white/[0.02] transition-colors searchable-row"
+                      data-id="<%= e._id %>"
+                      data-name="<%= e.name.toLowerCase() %>"
+                      data-status="<%= e.isActive ? 'active' : 'inactive' %>"
+                    >
+                      <td class="px-6 py-4">
+                        <div class="engineer-name-display font-medium text-white cursor-pointer hover:text-brand-gold transition-colors" title="Click to edit">
+                          <%= e.name %>
+                        </div>
+                        <div class="engineer-name-edit hidden">
+                          <input type="text" class="inline-edit-input" value="<%= e.name %>" />
+                        </div>
+                      </td>
+                      <td class="px-4 py-4 text-center">
+                        <div
+                          class="toggle-switch mx-auto <%= e.isActive ? 'on' : 'off' %>"
+                          data-id="<%= e._id %>"
+                          title="Toggle active/inactive"
+                        ></div>
+                      </td>
+                      <td class="px-4 py-4 text-center">
+                        <div
+                          class="toggle-switch alert-toggle mx-auto <%= e.excludeFromAlerts ? 'off' : 'on' %>"
+                          data-id="<%= e._id %>"
+                          title="<%= e.excludeFromAlerts ? 'Excluded from alerts — click to include' : 'Included in alerts — click to exclude' %>"
+                        ></div>
+                      </td>
+                      <td class="px-6 py-4 text-right">
+                        <div class="inline-flex gap-1">
+                          <button class="action-btn edit-engineer-btn" data-id="<%= e._id %>" title="Edit name">
+                            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                          </button>
+                          <button class="action-btn danger delete-engineer-btn" data-id="<%= e._id %>" data-name="<%= e.name %>" title="Delete">
+                            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  <% }) %>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Add Engineer Form -->
+          <div class="glass rounded-3xl p-6 h-fit">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-9 h-9 rounded-xl bg-brand-gold/10 flex items-center justify-center">
+                <svg class="w-4.5 h-4.5 text-brand-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/></svg>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">Add Engineer</h3>
+                <p class="text-xs text-gray-500">Create a new engineer record</p>
+              </div>
+            </div>
+
+            <form id="engineerForm" action="/admin/master-data/engineers" method="POST" class="space-y-4">
+              <div>
+                <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Engineer name</label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  placeholder="e.g. Ahmed Samy"
+                  class="w-full glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200"
+                />
+              </div>
+              <button
+                type="submit"
+                class="w-full rounded-xl py-3 text-sm font-bold text-brand-950 transition-all duration-200 hover:brightness-110 hover:shadow-lg hover:shadow-brand-gold/20"
+                style="background: linear-gradient(135deg, #c9a84c, #e2c97e)"
+              >
+                Add Engineer
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ TAB: PROJECTS ═══════ -->
+      <section class="tab-panel hidden" data-panel="projects">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div class="xl:col-span-2 space-y-4" id="projectsList">
+            <% if (!projects.length) { %>
+              <div id="projectsEmptyState" class="glass rounded-3xl p-12 text-center">
+                <div class="w-16 h-16 rounded-2xl bg-brand-gold/10 flex items-center justify-center mx-auto mb-4">
+                  <svg class="w-8 h-8 text-brand-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+                </div>
+                <div class="text-white font-semibold">No projects yet</div>
+                <div class="text-sm text-gray-500 mt-1">Create your first project →</div>
+              </div>
+            <% } %>
+
+            <% projects.forEach(p => { %>
+              <div
+                class="glass rounded-3xl overflow-hidden searchable-row"
+                data-name="<%= (p.name || '').toLowerCase() %> <%= (p.code || '').toLowerCase() %> <%= (p.location || '').toLowerCase() %> <%= ((p.levels || []).map(l => l.name).join(' ') || '').toLowerCase() %>"
+                data-status="active"
+              >
+                <div class="px-6 py-5 border-b border-white/5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <div class="flex items-center gap-2.5 flex-wrap">
+                      <h3 class="text-lg font-bold text-white"><%= p.name %></h3>
+                      <% if (p.code) { %>
+                        <span class="rounded-lg border border-brand-gold/20 bg-brand-gold/10 px-2.5 py-1 text-[11px] font-bold text-brand-gold tracking-wide font-mono"><%= p.code %></span>
+                      <% } %>
+                    </div>
+                    <div class="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
+                      <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                      <%= p.location || 'No location specified' %>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    class="toggle-project-levels glass-inner rounded-xl px-3.5 py-2 text-xs font-semibold text-gray-300 hover:text-white transition-all duration-200"
+                    data-target="levels_<%= p._id %>"
+                  >
+                    <span class="flex items-center gap-1.5">
+                      <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
+                      Levels (<%= (p.levels || []).length %>) · Elements (<%= (p.elements || []).length %>)
+                    </span>
+                  </button>
+                </div>
+
+                <div id="levels_<%= p._id %>" class="px-6 py-5">
+                  <div class="mb-4">
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-3">Levels</div>
+
+                    <% if (!p.levels || !p.levels.length) { %>
+                      <div id="levelsEmpty_<%= p._id %>" class="rounded-xl border border-dashed border-white/10 bg-brand-950/30 px-4 py-4 text-sm text-gray-600">
+                        No levels added yet.
+                      </div>
+                    <% } %>
+
+                    <div id="levelsList_<%= p._id %>" class="flex flex-wrap gap-2">
+                      <% (p.levels || []).forEach(l => { %>
+                        <div
+                          class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all duration-200 <%= l.isActive ? 'border-white/10 bg-white/[0.04] text-white hover:border-white/20' : 'border-white/5 bg-white/[0.02] text-gray-500 line-through' %>"
+                          data-level-id="<%= l._id %>"
+                        >
+                          <span><%= l.name %></span>
+                          <button
+                            type="button"
+                            class="remove-level-btn text-red-400/60 hover:text-red-400 text-base leading-none transition-colors"
+                            data-project-id="<%= p._id %>"
+                            data-level-id="<%= l._id %>"
+                            data-level-name="<%= l.name %>"
+                          >×</button>
+                        </div>
+                      <% }) %>
+                    </div>
+                  </div>
+
+                  <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+                    <input
+                      type="text"
+                      id="newLevel_<%= p._id %>"
+                      placeholder="Add new level… (press Enter)"
+                      class="glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200 level-input"
+                      data-project-id="<%= p._id %>"
+                    />
+                    <button
+                      type="button"
+                      class="add-level-btn rounded-xl px-5 py-3 text-sm font-bold text-brand-950 hover:brightness-110 transition-all duration-200"
+                      style="background: linear-gradient(135deg, #c9a84c, #e2c97e)"
+                      data-project-id="<%= p._id %>"
+                    >
+                      Add
+                    </button>
+                  </div>
+
+                  <!-- Elements Section -->
+                  <div class="mt-6 pt-5 border-t border-white/5">
+                    <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-3">Elements</div>
+
+                    <% if (!p.elements || !p.elements.length) { %>
+                      <div id="elementsEmpty_<%= p._id %>" class="rounded-xl border border-dashed border-white/10 bg-brand-950/30 px-4 py-4 text-sm text-gray-600">
+                        No elements added yet.
+                      </div>
+                    <% } %>
+
+                    <div id="elementsList_<%= p._id %>" class="flex flex-wrap gap-2 mb-3">
+                      <% (p.elements || []).forEach(e => { %>
+                        <div
+                          class="inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all duration-200 <%= e.isActive ? 'border-blue-400/20 bg-blue-400/[0.06] text-blue-200 hover:border-blue-400/30' : 'border-white/5 bg-white/[0.02] text-gray-500 line-through' %>"
+                          data-element-id="<%= e._id %>"
+                        >
+                          <span><%= e.name %></span>
+                          <button
+                            type="button"
+                            class="remove-element-btn text-red-400/60 hover:text-red-400 text-base leading-none transition-colors"
+                            data-project-id="<%= p._id %>"
+                            data-element-id="<%= e._id %>"
+                            data-element-name="<%= e.name %>"
+                          >×</button>
+                        </div>
+                      <% }) %>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+                      <input
+                        type="text"
+                        id="newElement_<%= p._id %>"
+                        placeholder="Add new element… (press Enter)"
+                        class="glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200 element-input"
+                        data-project-id="<%= p._id %>"
+                      />
+                      <button
+                        type="button"
+                        class="add-element-btn rounded-xl px-5 py-3 text-sm font-bold text-brand-950 hover:brightness-110 transition-all duration-200"
+                        style="background: linear-gradient(135deg, #3b82f6, #60a5fa)"
+                        data-project-id="<%= p._id %>"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+
+          <!-- Add Project Form -->
+          <div class="glass rounded-3xl p-6 h-fit">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-9 h-9 rounded-xl bg-brand-gold/10 flex items-center justify-center">
+                <svg class="w-4.5 h-4.5 text-brand-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">Add Project</h3>
+                <p class="text-xs text-gray-500">With initial levels</p>
+              </div>
+            </div>
+
+            <form id="projectForm" action="/admin/master-data/projects" method="POST" class="space-y-4">
+              <div>
+                <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Project name</label>
+                <input type="text" name="name" required placeholder="e.g. Palm Jebel Ali"
+                  class="w-full glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200" />
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Code</label>
+                  <input type="text" name="code" placeholder="Optional"
+                    class="w-full glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200" />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Location</label>
+                  <input type="text" name="location" placeholder="Optional"
+                    class="w-full glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200" />
+                </div>
+              </div>
+              <div>
+                <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Levels <span class="text-gray-600">(comma-separated)</span></label>
+                <input type="text" name="levels" placeholder="e.g. Basement, Ground, First"
+                  class="w-full glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200" />
+              </div>
+              <button type="submit"
+                class="w-full rounded-xl py-3 text-sm font-bold text-brand-950 transition-all duration-200 hover:brightness-110 hover:shadow-lg hover:shadow-brand-gold/20"
+                style="background: linear-gradient(135deg, #c9a84c, #e2c97e)">
+                Add Project
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ TAB: ELEMENTS ═══════ -->
+      <section class="tab-panel hidden" data-panel="elements">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div class="xl:col-span-2 glass rounded-3xl p-6">
+            <div class="flex items-center justify-between mb-5">
+              <div>
+                <h2 class="text-lg font-bold text-white">Elements</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Click to toggle active/inactive</p>
+              </div>
+              <div class="text-xs text-gray-500 font-mono" id="elementCount"><%= elements.length %> total</div>
+            </div>
+
+            <% if (!elements.length) { %>
+              <div id="elementsEmptyState" class="rounded-xl border border-dashed border-white/10 bg-brand-950/30 px-4 py-12 text-center text-gray-600">
+                No elements yet. Add one →
+              </div>
+            <% } else { %>
+              <div id="elementsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <% elements.forEach(e => { %>
+                  <button
+                    type="button"
+                    class="toggle-item-btn text-left rounded-xl border p-4 transition-all duration-200 searchable-row <%= e.isActive ? 'border-emerald-500/20 bg-emerald-500/[0.07] hover:bg-emerald-500/[0.12]' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]' %>"
+                    data-id="<%= e._id %>"
+                    data-name="<%= e.name.toLowerCase() %>"
+                    data-status="<%= e.isActive ? 'active' : 'inactive' %>"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="font-medium text-sm <%= e.isActive ? 'text-white' : 'text-gray-500 line-through' %>"><%= e.name %></div>
+                      <div class="w-2 h-2 rounded-full flex-shrink-0 <%= e.isActive ? 'bg-emerald-400' : 'bg-gray-600' %>"></div>
+                    </div>
+                  </button>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+
+          <div class="glass rounded-3xl p-6 h-fit">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+                <svg class="w-4.5 h-4.5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">Add Element</h3>
+                <p class="text-xs text-gray-500">New master element</p>
+              </div>
+            </div>
+            <form id="elementForm" action="/admin/master-data/items" method="POST" class="space-y-4">
+              <input type="hidden" name="category" value="element" />
+              <div>
+                <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Element name</label>
+                <input type="text" name="name" required placeholder="e.g. Concrete"
+                  class="w-full glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200" />
+              </div>
+              <button type="submit"
+                class="w-full rounded-xl py-3 text-sm font-bold text-brand-950 transition-all duration-200 hover:brightness-110 hover:shadow-lg hover:shadow-brand-gold/20"
+                style="background: linear-gradient(135deg, #c9a84c, #e2c97e)">
+                Add Element
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ TAB: ACTIVITIES ═══════ -->
+      <section class="tab-panel hidden" data-panel="activities">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div class="xl:col-span-2 glass rounded-3xl p-6">
+            <div class="flex items-center justify-between mb-5">
+              <div>
+                <h2 class="text-lg font-bold text-white">Activities</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Click to toggle active/inactive</p>
+              </div>
+              <div class="text-xs text-gray-500 font-mono" id="activityCount"><%= activities.length %> total</div>
+            </div>
+
+            <% if (!activities.length) { %>
+              <div id="activitiesEmptyState" class="rounded-xl border border-dashed border-white/10 bg-brand-950/30 px-4 py-12 text-center text-gray-600">
+                No activities yet. Add one →
+              </div>
+            <% } else { %>
+              <div id="activitiesList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <% activities.forEach(a => { %>
+                  <button
+                    type="button"
+                    class="toggle-item-btn text-left rounded-xl border p-4 transition-all duration-200 searchable-row <%= a.isActive ? 'border-emerald-500/20 bg-emerald-500/[0.07] hover:bg-emerald-500/[0.12]' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]' %>"
+                    data-id="<%= a._id %>"
+                    data-name="<%= a.name.toLowerCase() %>"
+                    data-status="<%= a.isActive ? 'active' : 'inactive' %>"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="font-medium text-sm <%= a.isActive ? 'text-white' : 'text-gray-500 line-through' %>"><%= a.name %></div>
+                      <div class="w-2 h-2 rounded-full flex-shrink-0 <%= a.isActive ? 'bg-emerald-400' : 'bg-gray-600' %>"></div>
+                    </div>
+                  </button>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+
+          <div class="glass rounded-3xl p-6 h-fit">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-9 h-9 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                <svg class="w-4.5 h-4.5 text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">Add Activity</h3>
+                <p class="text-xs text-gray-500">New master activity</p>
+              </div>
+            </div>
+            <form id="activityForm" action="/admin/master-data/items" method="POST" class="space-y-4">
+              <input type="hidden" name="category" value="activity" />
+              <div>
+                <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Activity name</label>
+                <input type="text" name="name" required placeholder="e.g. Formwork"
+                  class="w-full glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200" />
+              </div>
+              <button type="submit"
+                class="w-full rounded-xl py-3 text-sm font-bold text-brand-950 transition-all duration-200 hover:brightness-110 hover:shadow-lg hover:shadow-brand-gold/20"
+                style="background: linear-gradient(135deg, #c9a84c, #e2c97e)">
+                Add Activity
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ TAB: SUPPLIERS ═══════ -->
+      <section class="tab-panel hidden" data-panel="suppliers">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div class="xl:col-span-2 glass rounded-3xl p-6">
+            <div class="flex items-center justify-between mb-5">
+              <div>
+                <h2 class="text-lg font-bold text-white">Suppliers</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Click to toggle active/inactive</p>
+              </div>
+              <div class="text-xs text-gray-500 font-mono" id="supplierCount"><%= supplierCompanies.length %> total</div>
+            </div>
+            <% if (!supplierCompanies.length) { %>
+              <div id="suppliersEmptyState" class="rounded-xl border border-dashed border-white/10 bg-brand-950/30 px-4 py-12 text-center text-gray-600">
+                No suppliers yet. Add one →
+              </div>
+            <% } else { %>
+              <div id="suppliersList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <% supplierCompanies.forEach(c => { %>
+                  <button
+                    type="button"
+                    class="toggle-item-btn text-left rounded-xl border p-4 transition-all duration-200 searchable-row <%= c.isActive ? 'border-emerald-500/20 bg-emerald-500/[0.07] hover:bg-emerald-500/[0.12]' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]' %>"
+                    data-id="<%= c._id %>"
+                    data-name="<%= c.name.toLowerCase() %>"
+                    data-status="<%= c.isActive ? 'active' : 'inactive' %>"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="font-medium text-sm <%= c.isActive ? 'text-white' : 'text-gray-500 line-through' %>"><%= c.name %></div>
+                      <div class="w-2 h-2 rounded-full flex-shrink-0 <%= c.isActive ? 'bg-emerald-400' : 'bg-gray-600' %>"></div>
+                    </div>
+                  </button>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+          <div class="glass rounded-3xl p-6 h-fit">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-9 h-9 rounded-xl bg-sky-500/10 flex items-center justify-center">
+                <svg class="w-4.5 h-4.5 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 18l-6-6 6-6M16 6l6 6-6 6"/></svg>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">Add Supplier</h3>
+                <p class="text-xs text-gray-500">New supplier company</p>
+              </div>
+            </div>
+            <form id="supplierForm" action="/admin/master-data/items" method="POST" class="space-y-4">
+              <input type="hidden" name="category" value="supplierCompany" />
+              <div>
+                <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Company name</label>
+                <input type="text" name="name" required placeholder="e.g. Gulf Manpower"
+                  class="w-full glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200" />
+              </div>
+              <button type="submit"
+                class="w-full rounded-xl py-3 text-sm font-bold text-brand-950 transition-all duration-200 hover:brightness-110 hover:shadow-lg hover:shadow-brand-gold/20"
+                style="background: linear-gradient(135deg, #c9a84c, #e2c97e)">
+                Add Supplier
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+      <!-- ═══════ TAB: SUBCONTRACTORS ═══════ -->
+      <section class="tab-panel hidden" data-panel="subcontractors">
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div class="xl:col-span-2 glass rounded-3xl p-6">
+            <div class="flex items-center justify-between mb-5">
+              <div>
+                <h2 class="text-lg font-bold text-white">Subcontractors</h2>
+                <p class="text-xs text-gray-500 mt-0.5">Click to toggle active/inactive</p>
+              </div>
+              <div class="text-xs text-gray-500 font-mono" id="subcontractorCount"><%= subcontractorCompanies.length %> total</div>
+            </div>
+            <% if (!subcontractorCompanies.length) { %>
+              <div id="subcontractorsEmptyState" class="rounded-xl border border-dashed border-white/10 bg-brand-950/30 px-4 py-12 text-center text-gray-600">
+                No subcontractors yet. Add one →
+              </div>
+            <% } else { %>
+              <div id="subcontractorsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <% subcontractorCompanies.forEach(c => { %>
+                  <button
+                    type="button"
+                    class="toggle-item-btn text-left rounded-xl border p-4 transition-all duration-200 searchable-row <%= c.isActive ? 'border-emerald-500/20 bg-emerald-500/[0.07] hover:bg-emerald-500/[0.12]' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]' %>"
+                    data-id="<%= c._id %>"
+                    data-name="<%= c.name.toLowerCase() %>"
+                    data-status="<%= c.isActive ? 'active' : 'inactive' %>"
+                  >
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="font-medium text-sm <%= c.isActive ? 'text-white' : 'text-gray-500 line-through' %>"><%= c.name %></div>
+                      <div class="w-2 h-2 rounded-full flex-shrink-0 <%= c.isActive ? 'bg-emerald-400' : 'bg-gray-600' %>"></div>
+                    </div>
+                  </button>
+                <% }) %>
+              </div>
+            <% } %>
+          </div>
+          <div class="glass rounded-3xl p-6 h-fit">
+            <div class="flex items-center gap-3 mb-5">
+              <div class="w-9 h-9 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                <svg class="w-4.5 h-4.5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0"/></svg>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-white">Add Subcontractor</h3>
+                <p class="text-xs text-gray-500">New subcontractor company</p>
+              </div>
+            </div>
+            <form id="subcontractorForm" action="/admin/master-data/items" method="POST" class="space-y-4">
+              <input type="hidden" name="category" value="subcontractorCompany" />
+              <div>
+                <label class="block text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Company name</label>
+                <input type="text" name="name" required placeholder="e.g. Al Faraa Group"
+                  class="w-full glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200" />
+              </div>
+              <button type="submit"
+                class="w-full rounded-xl py-3 text-sm font-bold text-brand-950 transition-all duration-200 hover:brightness-110 hover:shadow-lg hover:shadow-brand-gold/20"
+                style="background: linear-gradient(135deg, #c9a84c, #e2c97e)">
+                Add Subcontractor
+              </button>
+            </form>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- ═══════ CONFIRM MODAL ═══════ -->
+  <div id="confirmModal" class="fixed inset-0 z-50 hidden modal-hidden">
+    <div class="modal-overlay absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
+    <div class="relative z-10 flex min-h-screen items-center justify-center p-4">
+      <div class="modal-card w-full max-w-sm glass rounded-3xl p-7">
+        <div class="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+        </div>
+        <div class="text-lg font-bold text-white mb-1" id="confirmTitle">Confirm action</div>
+        <p class="text-sm text-gray-400 mb-6 leading-relaxed" id="confirmMessage">Are you sure?</p>
+        <div class="flex gap-3">
+          <button id="confirmCancel" type="button"
+            class="flex-1 glass-inner rounded-xl px-4 py-2.5 text-sm font-semibold text-gray-300 hover:bg-white/[0.06] transition-all duration-200">
+            Cancel
+          </button>
+          <button id="confirmOk" type="button"
+            class="flex-1 rounded-xl bg-red-500 px-4 py-2.5 text-sm font-bold text-white hover:bg-red-600 transition-all duration-200">
+            Confirm
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ TOAST ═══════ -->
+  <div id="toastContainer" class="fixed bottom-5 right-5 z-[60] flex flex-col gap-2 pointer-events-none"></div>
+
+<script>
+(() => {
+  /* ═══════════════════════════════════════════
+     UTILITIES
+     ═══════════════════════════════════════════ */
+  const $ = (sel, ctx = document) => ctx.querySelector(sel);
+  const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
+
+  function escapeHtml(text = '') {
+    return String(text).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  /* ── Toast ── */
+  function showToast(message, type = 'success') {
+    const container = $('#toastContainer');
+    const el = document.createElement('div');
+    el.className = `pointer-events-auto glass rounded-2xl px-5 py-3.5 text-sm flex items-center gap-3 toast-enter ${
+      type === 'error' ? 'border-red-500/20' : 'border-emerald-500/20'
+    }`;
+    el.innerHTML = `
+      <div class="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${
+        type === 'error' ? 'bg-red-500/10' : 'bg-emerald-500/10'
+      }">
+        ${type === 'error'
+          ? '<svg class="w-3 h-3 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>'
+          : '<svg class="w-3 h-3 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>'
+        }
+      </div>
+      <span class="text-white font-medium">${escapeHtml(message)}</span>
+    `;
+    container.appendChild(el);
+
+    setTimeout(() => {
+      el.classList.remove('toast-enter');
+      el.classList.add('toast-exit');
+      setTimeout(() => el.remove(), 250);
+    }, 2800);
+  }
+
+  /* ── Confirm Modal ── */
+  const confirmModal = $('#confirmModal');
+  const confirmTitle = $('#confirmTitle');
+  const confirmMessage = $('#confirmMessage');
+  const confirmCancel = $('#confirmCancel');
+  const confirmOk = $('#confirmOk');
+  let confirmHandler = null;
+
+  function openConfirm({ title, message, onConfirm }) {
+    confirmTitle.textContent = title || 'Confirm action';
+    confirmMessage.textContent = message || 'Are you sure?';
+    confirmModal.classList.remove('hidden');
+    requestAnimationFrame(() => confirmModal.classList.remove('modal-hidden'));
+    confirmHandler = onConfirm;
+  }
+
+  function closeConfirm() {
+    confirmModal.classList.add('modal-hidden');
+    setTimeout(() => confirmModal.classList.add('hidden'), 250);
+    confirmHandler = null;
+  }
+
+  confirmCancel.addEventListener('click', closeConfirm);
+  confirmOk.addEventListener('click', async () => {
+    if (confirmHandler) await confirmHandler();
+    closeConfirm();
+  });
+  confirmModal.addEventListener('click', e => { if (e.target === confirmModal) closeConfirm(); });
+
+  /* ── Stat counters ── */
+  const stats = {
+    engineers: $('#statEngineers'),
+    projects: $('#statProjects'),
+    elements: $('#statElements'),
+    activities: $('#statActivities'),
+    suppliers: $('#supplierCount'),
+    subcontractors: $('#subcontractorCount')
+  };
+
+  function animateCounter(el, newVal) {
+    const current = parseInt(el.textContent) || 0;
+    if (current === newVal) return;
+    el.textContent = newVal;
+    el.style.transform = 'scale(1.15)';
+    el.style.color = '#c9a84c';
+    setTimeout(() => {
+      el.style.transform = '';
+      el.style.color = '';
+    }, 300);
+    el.style.transition = 'transform .3s ease, color .3s ease';
+  }
+
+  function updateStat(key, delta) {
+    const el = stats[key];
+    if (!el) return;
+    // supplierCount / subcontractorCount display "N total"
+    if (key === 'suppliers' || key === 'subcontractors') {
+      const current = parseInt(el.textContent) || 0;
+      const newVal = current + delta;
+      el.textContent = newVal + ' total';
+    } else {
+      animateCounter(el, (parseInt(el.textContent) || 0) + delta);
+    }
+  }
+
+  /* ═══════════════════════════════════════════
+     TABS
+     ═══════════════════════════════════════════ */
+  const tabButtons = $$('.tab-btn');
+  const tabPanels = $$('.tab-panel');
+  let activeTab = 'engineers';
+
+  function setActiveTab(tabName) {
+    activeTab = tabName;
+    tabButtons.forEach(btn => {
+      btn.classList.toggle('active-tab', btn.dataset.tab === tabName);
+    });
+    tabPanels.forEach(panel => {
+      panel.classList.toggle('hidden', panel.dataset.panel !== tabName);
+    });
+    applyFilters();
+  }
+
+  tabButtons.forEach(btn => btn.addEventListener('click', () => setActiveTab(btn.dataset.tab)));
+
+  /* ═══════════════════════════════════════════
+     SEARCH & FILTER
+     ═══════════════════════════════════════════ */
+  const globalSearch = $('#globalSearch');
+  const statusFilter = $('#statusFilter');
+
+  function applyFilters() {
+    const query = (globalSearch.value || '').trim().toLowerCase();
+    const status = statusFilter.value;
+    const panel = $(`.tab-panel[data-panel="${activeTab}"]`);
+    if (!panel) return;
+
+    $$(`.searchable-row`, panel).forEach(row => {
+      const name = (row.dataset.name || '');
+      const rowStatus = (row.dataset.status || 'active');
+      const matchSearch = !query || name.includes(query);
+      const matchStatus = status === 'all' || rowStatus === status;
+      row.classList.toggle('hidden', !(matchSearch && matchStatus));
+    });
+  }
+
+  globalSearch.addEventListener('input', applyFilters);
+  statusFilter.addEventListener('change', applyFilters);
+
+  /* ── Keyboard shortcut: Ctrl+K to focus search ── */
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      globalSearch.focus();
+    }
+  });
+
+  /* ═══════════════════════════════════════════
+     ENGINEERS — Toggle, Edit, Delete
+     ═══════════════════════════════════════════ */
+
+  /* Toggle switch for engineer status */
+  function bindEngineerToggles(scope = document) {
+    $$('.toggle-switch:not(.alert-toggle)', scope).forEach(sw => {
+      if (sw.dataset.bound) return;
+      sw.dataset.bound = '1';
+      sw.addEventListener('click', async () => {
+        const id = sw.dataset.id;
+        try {
+          const res = await fetch(`/admin/master-data/engineers/${id}/toggle`, { method: 'PATCH' });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.message || 'Failed');
+
+          const isActive = typeof data.isActive === 'boolean' ? data.isActive : !sw.classList.contains('on');
+          sw.classList.toggle('on', isActive);
+          sw.classList.toggle('off', !isActive);
+
+          const row = sw.closest('tr');
+          if (row) {
+            row.dataset.status = isActive ? 'active' : 'inactive';
+            const nameEl = row.querySelector('.engineer-name-display');
+            if (nameEl) {
+              nameEl.classList.toggle('text-white', isActive);
+              nameEl.classList.toggle('text-gray-500', !isActive);
+              nameEl.classList.toggle('line-through', !isActive);
+            }
+          }
+          showToast('Status updated.');
+          applyFilters();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    });
+
+    /* Toggle switch for alert exclusion */
+    $$('.alert-toggle', scope).forEach(sw => {
+      if (sw.dataset.bound) return;
+      sw.dataset.bound = '1';
+      sw.addEventListener('click', async () => {
+        const id = sw.dataset.id;
+        try {
+          const res = await fetch(`/admin/master-data/engineers/${id}/toggle-alerts`, { method: 'PATCH' });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.message || 'Failed');
+
+          const excluded = data.excludeFromAlerts;
+          sw.classList.toggle('on', !excluded);
+          sw.classList.toggle('off', excluded);
+          sw.title = excluded ? 'Excluded from alerts — click to include' : 'Included in alerts — click to exclude';
+          showToast(excluded ? 'Engineer excluded from alerts.' : 'Engineer included in alerts.');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    });
+  }
+
+  /* Inline edit engineer name */
+  function bindEngineerEdits(scope = document) {
+    $$('.engineer-name-display', scope).forEach(el => {
+      if (el.dataset.bound) return;
+      el.dataset.bound = '1';
+      el.addEventListener('dblclick', () => startEngineerEdit(el));
+    });
+
+    $$('.edit-engineer-btn', scope).forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => {
+        const row = btn.closest('tr');
+        const display = row.querySelector('.engineer-name-display');
+        if (display) startEngineerEdit(display);
+      });
+    });
+  }
+
+  function startEngineerEdit(displayEl) {
+    const row = displayEl.closest('tr');
+    const editWrap = row.querySelector('.engineer-name-edit');
+    const input = editWrap.querySelector('input');
+
+    displayEl.classList.add('hidden');
+    editWrap.classList.remove('hidden');
+    input.value = displayEl.textContent.trim();
+    input.focus();
+    input.select();
+
+    const finish = async (save) => {
+      input.removeEventListener('blur', onBlur);
+      input.removeEventListener('keydown', onKey);
+
+      if (save && input.value.trim() && input.value.trim() !== displayEl.textContent.trim()) {
+        const id = row.dataset.id;
+        try {
+          const res = await fetch(`/admin/master-data/engineers/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: input.value.trim() })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.message || 'Failed');
+          displayEl.textContent = input.value.trim();
+          row.dataset.name = input.value.trim().toLowerCase();
+          showToast('Name updated.');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      }
+
+      editWrap.classList.add('hidden');
+      displayEl.classList.remove('hidden');
+    };
+
+    const onBlur = () => finish(true);
+    const onKey = (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); input.blur(); }
+      if (e.key === 'Escape') { finish(false); }
+    };
+
+    input.addEventListener('blur', onBlur);
+    input.addEventListener('keydown', onKey);
+  }
+
+  /* Delete engineer */
+  function bindEngineerDeletes(scope = document) {
+    $$('.delete-engineer-btn', scope).forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => {
+        const id = btn.dataset.id;
+        const name = btn.dataset.name;
+        openConfirm({
+          title: 'Delete engineer',
+          message: `Remove "${name}" permanently?`,
+          onConfirm: async () => {
+            try {
+              const res = await fetch(`/admin/master-data/engineers/${id}`, { method: 'DELETE' });
+              if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d.message || 'Failed'); }
+
+              const row = btn.closest('tr');
+              row.style.transition = 'all .3s ease';
+              row.style.opacity = '0';
+              row.style.transform = 'translateX(20px)';
+              setTimeout(() => {
+                row.remove();
+                updateStat('engineers', -1);
+
+                const list = $('#engineersList');
+                if (list && !list.children.length) {
+                  $('#engineersEmptyState')?.classList.remove('hidden');
+                  $('#engineersTableWrapper')?.classList.add('hidden');
+                }
+              }, 300);
+
+              showToast('Engineer deleted.');
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
+          }
+        });
+      });
+    });
+  }
+
+  bindEngineerToggles();
+  bindEngineerEdits();
+  bindEngineerDeletes();
+
+  /* ═══════════════════════════════════════════
+     PROJECTS — Levels (Add/Remove) + Enter key
+     ═══════════════════════════════════════════ */
+
+  function bindProjectToggles(scope = document) {
+    $$('.toggle-project-levels', scope).forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => {
+        const target = document.getElementById(btn.dataset.target);
+        if (target) target.classList.toggle('hidden');
+      });
+    });
+  }
+
+  /* Enter key on level inputs */
+  function bindLevelInputEnter(scope = document) {
+    $$('.level-input', scope).forEach(input => {
+      if (input.dataset.bound) return;
+      input.dataset.bound = '1';
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const projectId = input.dataset.projectId;
+          const btn = $(`.add-level-btn[data-project-id="${CSS.escape(projectId)}"]`);
+          if (btn) btn.click();
+        }
+      });
+    });
+  }
+
+  function bindAddLevelButtons(scope = document) {
+    $$('.add-level-btn', scope).forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', async () => {
+        const projectId = btn.dataset.projectId;
+        const input = document.getElementById(`newLevel_${projectId}`);
+        const name = input.value.trim();
+        if (!name) { showToast('Enter a level name.', 'error'); return; }
+
+        btn.disabled = true;
+        const orig = btn.textContent;
+        btn.textContent = 'Adding...';
+
+        try {
+          const res = await fetch(`/admin/master-data/projects/${projectId}/levels`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.message || 'Failed');
+
+          const level = data.level || { _id: `tmp_${Date.now()}`, name, isActive: true };
+          const container = document.getElementById(`levelsList_${projectId}`);
+          const empty = document.getElementById(`levelsEmpty_${projectId}`);
+          if (empty) empty.remove();
+
+          const chip = createLevelChip(projectId, level);
+          chip.classList.add('fade-scale-enter');
+          container.appendChild(chip);
+
+          input.value = '';
+          showToast('Level added.');
+          refreshProjectSearchData(projectId);
+          applyFilters();
+        } catch (err) {
+          showToast(err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = orig;
+        }
+      });
+    });
+  }
+
+  function createLevelChip(projectId, level) {
+    const div = document.createElement('div');
+    const isActive = level.isActive !== false;
+    div.className = `inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition-all duration-200 ${
+      isActive ? 'border-white/10 bg-white/[0.04] text-white hover:border-white/20' : 'border-white/5 bg-white/[0.02] text-gray-500 line-through'
+    }`;
+    div.setAttribute('data-level-id', level._id || '');
+    div.innerHTML = `
+      <span>${escapeHtml(level.name || '')}</span>
+      <button type="button" class="remove-level-btn text-red-400/60 hover:text-red-400 text-base leading-none transition-colors"
+        data-project-id="${escapeHtml(projectId)}"
+        data-level-id="${escapeHtml(level._id || '')}"
+        data-level-name="${escapeHtml(level.name || '')}">×</button>
+    `;
+    bindRemoveLevelButtons(div);
+    return div;
+  }
+
+  function bindRemoveLevelButtons(scope = document) {
+    $$('.remove-level-btn', scope).forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', () => {
+        const projectId = btn.dataset.projectId;
+        const levelId = btn.dataset.levelId;
+        const levelName = btn.dataset.levelName;
+        openConfirm({
+          title: 'Remove level',
+          message: `Remove "${levelName}"?`,
+          onConfirm: async () => {
+            try {
+              const res = await fetch(`/admin/master-data/projects/${projectId}/levels/${levelId}`, { method: 'DELETE' });
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok) throw new Error(data.message || 'Failed');
+
+              const el = btn.closest('[data-level-id]');
+              if (el) {
+                el.style.transition = 'all .25s ease';
+                el.style.opacity = '0';
+                el.style.transform = 'scale(.9)';
+                setTimeout(() => {
+                  el.remove();
+                  const container = document.getElementById(`levelsList_${projectId}`);
+                  if (container && !container.children.length) {
+                    const empty = document.createElement('div');
+                    empty.id = `levelsEmpty_${projectId}`;
+                    empty.className = 'rounded-xl border border-dashed border-white/10 bg-brand-950/30 px-4 py-4 text-sm text-gray-600';
+                    empty.textContent = 'No levels added yet.';
+                    container.parentElement.insertBefore(empty, container);
+                  }
+                  refreshProjectSearchData(projectId);
+                  applyFilters();
+                }, 250);
+              }
+              showToast('Level removed.');
+            } catch (err) {
+              showToast(err.message, 'error');
+            }
+          }
+        });
+      });
+    });
+  }
+
+  function refreshProjectSearchData(projectId) {
+    const card = $(`.add-level-btn[data-project-id="${CSS.escape(projectId)}"]`)?.closest('.searchable-row');
+    if (!card) return;
+    const title = card.querySelector('h3')?.textContent || '';
+    const code = card.querySelector('.font-mono')?.textContent || '';
+    const loc = card.querySelector('.text-gray-500.mt-1')?.textContent || '';
+    const levels = $$('[data-level-id] span', card).map(s => s.textContent.trim());
+    card.dataset.name = `${title} ${code} ${loc} ${levels.join(' ')}`.toLowerCase();
+  }
+
+  bindProjectToggles();
+  bindAddLevelButtons();
+  bindRemoveLevelButtons();
+  bindLevelInputEnter();
+
+  /* ═══════════════════════════════════════════
+     PROJECTS — Elements (Add/Remove) + Enter key
+     ═══════════════════════════════════════════ */
+
+  function bindElementInputEnter(scope = document) {
+    $$('.element-input', scope).forEach(input => {
+      if (input.dataset.bound) return;
+      input.dataset.bound = '1';
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          const projectId = input.dataset.projectId;
+          const btn = $(`.add-element-btn[data-project-id="${CSS.escape(projectId)}"]`);
+          if (btn) btn.click();
+        }
+      });
+    });
+  }
+
+  function bindAddElementButtons(scope = document) {
+    $$('.add-element-btn', scope).forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', async () => {
+        const projectId = btn.dataset.projectId;
+        const input = document.getElementById(`newElement_${projectId}`);
+        const name = input?.value?.trim();
+        if (!name) { showToast('Enter an element name.', 'error'); return; }
+        try {
+          const res = await fetch(`/admin/master-data/projects/${projectId}/elements`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+          });
+          const data = await res.json();
+          if (!res.ok) throw new Error(data.message || 'Failed');
+          const element = data.element || { _id: `tmp_${Date.now()}`, name, isActive: true };
+          const container = document.getElementById(`elementsList_${projectId}`);
+          const empty = document.getElementById(`elementsEmpty_${projectId}`);
+          if (empty) empty.style.display = 'none';
+          const chip = createElementChip(projectId, element);
+          container.appendChild(chip);
+          if (input) input.value = '';
+          showToast('Element added.');
+        } catch (err) {
+          showToast(err.message || 'Failed to add element.', 'error');
+        }
+      });
+    });
+  }
+
+  function createElementChip(projectId, element) {
+    const div = document.createElement('div');
+    div.className = 'inline-flex items-center gap-2 rounded-xl border border-blue-400/20 bg-blue-400/[0.06] text-blue-200 hover:border-blue-400/30 px-3 py-2 text-sm transition-all duration-200';
+    div.setAttribute('data-element-id', element._id || '');
+    div.innerHTML = `
+      <span>${escapeHtml(element.name || '')}</span>
+      <button type="button" class="remove-element-btn text-red-400/60 hover:text-red-400 text-base leading-none transition-colors"
+        data-project-id="${escapeHtml(projectId)}"
+        data-element-id="${escapeHtml(element._id || '')}"
+        data-element-name="${escapeHtml(element.name || '')}">×</button>
+    `;
+    bindRemoveElementButtons(div);
+    return div;
+  }
+
+  function bindRemoveElementButtons(scope = document) {
+    $$('.remove-element-btn', scope).forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', async () => {
+        const projectId = btn.dataset.projectId;
+        const elementId = btn.dataset.elementId;
+        const elementName = btn.dataset.elementName;
+        showConfirm({
+          title: 'Remove element',
+          message: `Remove "${elementName}"?`,
+          onConfirm: async () => {
+            try {
+              const res = await fetch(`/admin/master-data/projects/${projectId}/elements/${elementId}`, { method: 'DELETE' });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.message || 'Failed');
+              const el = btn.closest('[data-element-id]');
+              if (el) el.remove();
+              const container = document.getElementById(`elementsList_${projectId}`);
+              const empty = document.getElementById(`elementsEmpty_${projectId}`);
+              if (empty && container && container.children.length === 0) empty.style.display = '';
+              showToast('Element removed.');
+            } catch (err) {
+              showToast(err.message || 'Failed to remove element.', 'error');
+            }
+          },
+        });
+      });
+    });
+  }
+
+  bindAddElementButtons();
+  bindRemoveElementButtons();
+  bindElementInputEnter();
+
+  /* ═══════════════════════════════════════════
+     ELEMENTS / ACTIVITIES — Toggle
+     ═══════════════════════════════════════════ */
+
+  function bindToggleItemButtons(scope = document) {
+    const buttons = scope.classList?.contains('toggle-item-btn') ? [scope] : $$('.toggle-item-btn', scope);
+    buttons.forEach(btn => {
+      if (btn.dataset.bound) return;
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        try {
+          const res = await fetch(`/admin/master-data/items/${id}/toggle`, { method: 'PATCH' });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.message || 'Failed');
+
+          const isActive = typeof data.isActive === 'boolean' ? data.isActive : btn.dataset.status !== 'active';
+          btn.dataset.status = isActive ? 'active' : 'inactive';
+
+          btn.className = `toggle-item-btn text-left rounded-xl border p-4 transition-all duration-200 searchable-row ${
+            isActive ? 'border-emerald-500/20 bg-emerald-500/[0.07] hover:bg-emerald-500/[0.12]' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'
+          }`;
+
+          const nameEl = btn.querySelector('.font-medium');
+          const dot = btn.querySelector('.rounded-full');
+          if (nameEl) nameEl.className = `font-medium text-sm ${isActive ? 'text-white' : 'text-gray-500 line-through'}`;
+          if (dot) dot.className = `w-2 h-2 rounded-full flex-shrink-0 ${isActive ? 'bg-emerald-400' : 'bg-gray-600'}`;
+
+          showToast('Status updated.');
+          applyFilters();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    });
+  }
+
+  bindToggleItemButtons();
+
+  /* ═══════════════════════════════════════════
+     AJAX FORMS
+     ═══════════════════════════════════════════ */
+
+  function renderEngineerRow(eng) {
+    const tr = document.createElement('tr');
+    tr.className = 'border-t border-white/[0.03] hover:bg-white/[0.02] transition-colors searchable-row row-enter';
+    tr.dataset.id = eng._id || '';
+    tr.dataset.name = (eng.name || '').toLowerCase();
+    tr.dataset.status = eng.isActive !== false ? 'active' : 'inactive';
+
+    tr.innerHTML = `
+      <td class="px-6 py-4">
+        <div class="engineer-name-display font-medium text-white cursor-pointer hover:text-brand-gold transition-colors" title="Click to edit">${escapeHtml(eng.name)}</div>
+        <div class="engineer-name-edit hidden"><input type="text" class="inline-edit-input" value="${escapeHtml(eng.name)}" /></div>
+      </td>
+      <td class="px-4 py-4 text-center">
+        <div class="toggle-switch mx-auto ${eng.isActive !== false ? 'on' : 'off'}" data-id="${escapeHtml(eng._id || '')}" title="Toggle"></div>
+      </td>
+      <td class="px-6 py-4 text-right">
+        <div class="inline-flex gap-1">
+          <button class="action-btn edit-engineer-btn" data-id="${escapeHtml(eng._id || '')}" title="Edit name">
+            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+          <button class="action-btn danger delete-engineer-btn" data-id="${escapeHtml(eng._id || '')}" data-name="${escapeHtml(eng.name)}" title="Delete">
+            <svg class="w-3.5 h-3.5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+        </div>
+      </td>
+    `;
+
+    bindEngineerToggles(tr);
+    bindEngineerEdits(tr);
+    bindEngineerDeletes(tr);
+    return tr;
+  }
+
+  function renderItemCard(item) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `toggle-item-btn text-left rounded-xl border p-4 transition-all duration-200 searchable-row fade-scale-enter ${
+      item.isActive ? 'border-emerald-500/20 bg-emerald-500/[0.07] hover:bg-emerald-500/[0.12]' : 'border-white/5 bg-white/[0.02] hover:bg-white/[0.05]'
+    }`;
+    btn.dataset.id = item._id || '';
+    btn.dataset.name = (item.name || '').toLowerCase();
+    btn.dataset.status = item.isActive ? 'active' : 'inactive';
+    btn.innerHTML = `
+      <div class="flex items-center justify-between gap-3">
+        <div class="font-medium text-sm ${item.isActive ? 'text-white' : 'text-gray-500 line-through'}">${escapeHtml(item.name)}</div>
+        <div class="w-2 h-2 rounded-full flex-shrink-0 ${item.isActive ? 'bg-emerald-400' : 'bg-gray-600'}"></div>
+      </div>
+    `;
+    bindToggleItemButtons(btn);
+    return btn;
+  }
+
+  function renderProjectCard(project) {
+    const wrapper = document.createElement('div');
+    const levelsText = (project.levels || []).map(l => l.name).join(' ').toLowerCase();
+    wrapper.className = 'glass rounded-3xl overflow-hidden searchable-row fade-scale-enter';
+    wrapper.dataset.name = `${project.name || ''} ${project.code || ''} ${project.location || ''} ${levelsText}`.toLowerCase();
+    wrapper.dataset.status = 'active';
+
+    wrapper.innerHTML = `
+      <div class="px-6 py-5 border-b border-white/5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <h3 class="text-lg font-bold text-white">${escapeHtml(project.name)}</h3>
+            ${project.code ? `<span class="rounded-lg border border-brand-gold/20 bg-brand-gold/10 px-2.5 py-1 text-[11px] font-bold text-brand-gold tracking-wide font-mono">${escapeHtml(project.code)}</span>` : ''}
+          </div>
+          <div class="text-sm text-gray-500 mt-1 flex items-center gap-1.5">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            ${escapeHtml(project.location || 'No location specified')}
+          </div>
+        </div>
+        <button type="button" class="toggle-project-levels glass-inner rounded-xl px-3.5 py-2 text-xs font-semibold text-gray-300 hover:text-white transition-all duration-200"
+          data-target="levels_${escapeHtml(project._id || '')}">
+          <span class="flex items-center gap-1.5">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h7"/></svg>
+            Levels (${(project.levels||[]).length})
+          </span>
+        </button>
+      </div>
+      <div id="levels_${escapeHtml(project._id || '')}" class="px-6 py-5">
+        <div class="mb-4">
+          <div class="text-[11px] font-semibold uppercase tracking-wider text-gray-500 mb-3">Levels</div>
+          ${!project.levels?.length ? `<div id="levelsEmpty_${escapeHtml(project._id || '')}" class="rounded-xl border border-dashed border-white/10 bg-brand-950/30 px-4 py-4 text-sm text-gray-600">No levels added yet.</div>` : ''}
+          <div id="levelsList_${escapeHtml(project._id || '')}" class="flex flex-wrap gap-2"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+          <input type="text" id="newLevel_${escapeHtml(project._id || '')}" placeholder="Add new level… (press Enter)"
+            class="glass-inner rounded-xl px-4 py-3 text-sm text-white placeholder:text-gray-600 outline-none transition-all duration-200 level-input"
+            data-project-id="${escapeHtml(project._id || '')}" />
+          <button type="button" class="add-level-btn rounded-xl px-5 py-3 text-sm font-bold text-brand-950 hover:brightness-110 transition-all duration-200"
+            style="background: linear-gradient(135deg, #c9a84c, #e2c97e)" data-project-id="${escapeHtml(project._id || '')}">Add</button>
+        </div>
+      </div>
+    `;
+
+    const container = wrapper.querySelector(`[id^="levelsList_"]`);
+    (project.levels || []).forEach(l => container.appendChild(createLevelChip(project._id, l)));
+
+    bindProjectToggles(wrapper);
+    bindAddLevelButtons(wrapper);
+    bindRemoveLevelButtons(wrapper);
+    bindLevelInputEnter(wrapper);
+    return wrapper;
+  }
+
+  /* ── Bind all forms ── */
+  function bindForm(formId, listId, renderFn, statKey, emptyId, tableWrapperId) {
+    const form = $(`#${formId}`);
+    if (!form || form.dataset.bound) return;
+    form.dataset.bound = '1';
+
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = form.querySelector('button[type="submit"]');
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Adding...';
+
+      try {
+        const payload = Object.fromEntries(new FormData(form).entries());
+        const res = await fetch(form.action, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.message || 'Failed');
+
+        let item;
+        if (statKey === 'engineers') {
+          item = data.engineer || { _id: data._id, name: payload.name, isActive: true };
+        } else if (statKey === 'projects') {
+          item = data.project || {
+            _id: data._id, name: payload.name, code: payload.code || '', location: payload.location || '',
+            levels: (payload.levels || '').split(',').map(s => s.trim()).filter(Boolean).map((n, i) => ({ _id: `tmp_${Date.now()}_${i}`, name: n, isActive: true }))
+          };
+        } else {
+          item = data.item || { _id: data._id, name: payload.name, isActive: true };
+        }
+
+        const list = $(`#${listId}`);
+        if (list) list.prepend(renderFn(item));
+
+        if (emptyId) $(`#${emptyId}`)?.classList.add('hidden');
+        if (tableWrapperId) $(`#${tableWrapperId}`)?.classList.remove('hidden');
+
+        updateStat(statKey, 1);
+        form.reset();
+        showToast(`${statKey.slice(0,1).toUpperCase() + statKey.slice(1,-1)} added.`);
+        applyFilters();
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = orig;
+      }
+    });
+  }
+
+  bindForm('engineerForm', 'engineersList', renderEngineerRow, 'engineers', 'engineersEmptyState', 'engineersTableWrapper');
+  bindForm('projectForm', 'projectsList', renderProjectCard, 'projects', 'projectsEmptyState', null);
+  bindForm('elementForm', 'elementsList', renderItemCard, 'elements', 'elementsEmptyState', null);
+  bindForm('activityForm', 'activitiesList', renderItemCard, 'activities', 'activitiesEmptyState', null);
+  bindForm('supplierForm', 'suppliersList', renderItemCard, 'suppliers', 'suppliersEmptyState', null);
+  bindForm('subcontractorForm', 'subcontractorsList', renderItemCard, 'subcontractors', 'subcontractorsEmptyState', null);
+
+  /* ── Mobile tab scroll fade ── */
+  const tabWrapper = $('.tab-scroll-wrapper');
+  if (tabWrapper) {
+    const bar = tabWrapper.querySelector('div');
+    const checkFade = () => {
+      tabWrapper.classList.toggle('show-fade', bar.scrollWidth > bar.clientWidth && bar.scrollLeft < bar.scrollWidth - bar.clientWidth - 10);
+    };
+    bar.addEventListener('scroll', checkFade);
+    window.addEventListener('resize', checkFade);
+    checkFade();
+  }
+
+  /* ── Init ── */
+  setActiveTab('engineers');
+})();
+</script>
+
+</body>
+</html>

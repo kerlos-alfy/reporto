@@ -1,0 +1,1845 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="<%= (typeof adminUser !== 'undefined' && adminUser && adminUser.theme) ? adminUser.theme : 'navy' %>">
+<head>
+  <!-- Theme: apply before render to prevent flash -->
+  <script>
+    (function(){var t=localStorage.getItem('ag_theme');if(t&&['navy','cyan','amber'].includes(t)){document.documentElement.setAttribute('data-theme',t);if(t==='light')document.documentElement.classList.remove('dark');else document.documentElement.classList.add('dark');}})();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/images/logo.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/images/logo.png">
+<link rel="apple-touch-icon" href="/assets/images/logo.png">
+  <title>Dashboard — Agile Prime</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base: {
+              950: 'var(--surface-950)',
+              900: 'var(--surface-900)',
+              850: 'var(--surface-850)',
+              800: 'var(--surface-800)',
+              700: 'var(--surface-700)',
+              600: 'var(--surface-700)',
+            },
+            gold: {
+              DEFAULT: 'var(--accent)',
+              light: 'var(--accent-light)',
+              dim:   'var(--accent-dim)',
+            },
+            ok: '#3dd68c',
+            warn: '#f0a030',
+            bad: '#f05555',
+            info: '#50b0f0',
+          },
+          fontFamily: {
+            sans: ['DM Sans', 'system-ui', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+        },
+      },
+    };
+  </script>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/css/app.css">
+
+  <style>
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    background: #080a10;
+    color: #c8cdd6;
+    font-family: 'DM Sans', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 99px; }
+
+  .panel {
+    background: #10151f;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 16px;
+  }
+
+  .view { display: none; }
+  .view.is-active { display: block; }
+
+  /* Bottom Nav */
+  .bnav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: rgba(8,10,16,0.94);
+    backdrop-filter: blur(24px) saturate(1.5);
+    border-top: 1px solid rgba(255,255,255,0.06);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .bnav-btn {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 2px 8px;
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.28);
+    transition: 0.2s;
+    -webkit-tap-highlight-color: transparent;
+    letter-spacing: 0.02em;
+    background: none;
+    border: none;
+    cursor: pointer;
+  }
+
+  .bnav-btn.on { color: #c9a84c; }
+  .bnav-btn:active { transform: scale(0.9); }
+  .bnav-btn svg { width: 24px; height: 24px; }
+
+  /* Filter Sheet */
+  .sheet-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: rgba(0,0,0,0.55);
+    backdrop-filter: blur(3px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+
+  .sheet-bg.on {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .sheet {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 201;
+    background: #10151f;
+    border-top-left-radius: 28px;
+    border-top-right-radius: 28px;
+    transform: translateY(100%);
+    transition: transform 0.35s cubic-bezier(.22,.68,0,1.0);
+    max-height: 88vh;
+    overflow-y: auto;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-bottom: 0;
+  }
+
+  .sheet.on { transform: translateY(0); }
+
+  .sheet-handle {
+    width: 40px;
+    height: 5px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.12);
+    margin: 14px auto 8px;
+  }
+
+  /* Inputs */
+  .fi {
+    width: 100%;
+    background: #0d1528;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 10px 36px 10px 14px;
+    font-size: 13px;
+    color: #e0e4ea;
+    outline: none;
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  select.fi {
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%23c9a84c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  input[type="date"].fi {
+    appearance: auto;
+    -webkit-appearance: auto;
+    background-image: none;
+    padding-right: 12px;
+    color-scheme: dark;
+    min-height: 44px;
+  }
+
+  input[type="date"].fi::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.9;
+    filter: invert(78%) sepia(25%) saturate(523%) hue-rotate(7deg) brightness(92%) contrast(87%);
+  }
+
+  input[type="date"].fi::-webkit-datetime-edit,
+  input[type="date"].fi::-webkit-datetime-edit-text,
+  input[type="date"].fi::-webkit-datetime-edit-month-field,
+  input[type="date"].fi::-webkit-datetime-edit-day-field,
+  input[type="date"].fi::-webkit-datetime-edit-year-field {
+    color: #e0e4ea;
+  }
+
+  .fi:hover {
+    border-color: rgba(201,168,76,0.2);
+    background-color: #0f1a30;
+  }
+
+  .fi:focus {
+    border-color: rgba(212,168,67,0.5);
+    box-shadow: 0 0 0 3px rgba(201,168,76,0.07);
+  }
+
+  .fi::placeholder { color: rgba(255,255,255,0.2); }
+  .fi option { background-color: #0d1528; color: #e2e8f0; }
+
+  /* KPI */
+  .kpi {
+    background: linear-gradient(160deg, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0.01) 100%);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 20px;
+    padding: 20px;
+  }
+
+  .kpi-num {
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  @media (max-width: 639px) {
+    .kpi-num { font-size: 26px; }
+  }
+
+  /* Insight scroll */
+  .insight-row {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding: 2px 0 8px;
+  }
+
+  .insight-row::-webkit-scrollbar { display: none; }
+
+  .insight-item {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+    min-width: 170px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+
+  /* Report card */
+  .rcard {
+    background: #10151f;
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 18px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .rcard:hover { border-color: rgba(255,255,255,0.10); }
+
+  /* Progress bar */
+  .pbar {
+    height: 5px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.06);
+  }
+
+  .pbar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.5s ease;
+  }
+
+  /* Status dot */
+  .sdot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* Table */
+  .dtable {
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .dtable th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #151c28;
+    font-weight: 700;
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+  }
+
+  .dtable td { color: rgba(255,255,255,0.65); }
+  .dtable tbody tr:hover td { background: rgba(255,255,255,0.025); }
+
+  /* Desktop tab */
+  .dtab {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 9px 20px;
+    border-radius: 14px;
+    color: rgba(255,255,255,0.3);
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+  }
+
+  .dtab:hover { color: rgba(255,255,255,0.5); }
+  .dtab.on { background: rgba(255,255,255,0.07); color: #fff; }
+
+  /* Fade */
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .rise { animation: rise 0.45s ease both; }
+  .rise-1 { animation-delay: 0.04s; }
+  .rise-2 { animation-delay: 0.08s; }
+  .rise-3 { animation-delay: 0.12s; }
+  .rise-4 { animation-delay: 0.16s; }
+  .rise-5 { animation-delay: 0.20s; }
+
+  @media (min-width: 1024px) {
+    .bnav { display: none; }
+  }
+
+  @media (max-width: 1023px) {
+    body { padding-bottom: 68px; }
+  }
+
+  /* DAILY REPORTS */
+  .rpt-date-group { margin-bottom: 32px; }
+  .rpt-date-group:last-child { margin-bottom: 0; }
+
+  .rpt-date-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 0 2px;
+  }
+
+  .rpt-date-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: -0.01em;
+  }
+
+  .rpt-date-badge svg { color: #c9a84c; }
+
+  .rpt-date-stats {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.2);
+  }
+
+  .rpt-date-dot {
+    width: 3px;
+    height: 3px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
+  }
+
+  .rpt-cards-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  @media (min-width: 768px) {
+    .rpt-cards-grid { grid-template-columns: repeat(2,1fr); }
+  }
+
+  @media (min-width: 1280px) {
+    .rpt-cards-grid { grid-template-columns: repeat(3,1fr); }
+  }
+
+  .nc-card {
+    background: #10151f;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .nc-card:hover { border-color: rgba(255,255,255,0.11); }
+  .nc-card--delayed { border-left: 3px solid #f05555; }
+
+  .nc-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 0;
+  }
+
+  .nc-id {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: #c9a84c;
+    background: rgba(212,168,67,0.08);
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  .nc-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    padding: 3px 9px;
+    border-radius: 5px;
+  }
+
+  .nc-badge--ok   { background: rgba(61,214,140,0.1); color: #3dd68c; }
+  .nc-badge--warn { background: rgba(240,160,48,0.1); color: #f0a030; }
+  .nc-badge--bad  { background: rgba(240,85,85,0.1); color: #f05555; }
+
+  .nc-project {
+    font-size: 18px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    padding: 10px 16px 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nc-eng {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 16px 14px;
+  }
+
+  .nc-eng-av {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(212,168,67,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 800;
+    color: #c9a84c;
+    flex-shrink: 0;
+  }
+
+  .nc-eng-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.35);
+  }
+
+  /* النسخة النهائية فقط */
+  .nc-shift-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 6px 16px 10px;
+    overflow: hidden;
+  }
+
+  .nc-shift-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    white-space: nowrap;
+  }
+
+  .nc-shift-badge svg { flex-shrink: 0; }
+
+  .nc-shift-badge--day {
+    background: rgba(201,168,76,0.12);
+    color: #c9a84c;
+    border: 1px solid rgba(201,168,76,0.2);
+  }
+
+  .nc-shift-badge--night {
+    background: rgba(99,102,241,0.12);
+    color: #a5b4fc;
+    border: 1px solid rgba(99,102,241,0.2);
+  }
+
+  .nc-shift-sep {
+    width: 1px;
+    height: 14px;
+    background: rgba(255,255,255,0.08);
+    flex-shrink: 0;
+  }
+
+  .nc-shift-time {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nc-shift-time svg {
+    flex-shrink: 0;
+    color: rgba(201,168,76,0.5);
+  }
+
+  .nc-shift-dur {
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(201,168,76,0.7);
+    white-space: nowrap;
+  }
+
+  .nc-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.05);
+  }
+
+  .nc-stats {
+    display: flex;
+    align-items: center;
+    padding: 14px 16px;
+    gap: 0;
+  }
+
+  .nc-stat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .nc-stat-n {
+    font-size: 22px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  .nc-stat-l {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: rgba(255,255,255,0.18);
+  }
+
+  .nc-stat-sep {
+    width: 1px;
+    height: 36px;
+    background: rgba(255,255,255,0.05);
+    margin: 0 16px;
+    flex-shrink: 0;
+  }
+
+  .nc-minibar-wrap { padding: 0 16px 14px; }
+
+  .nc-minibar {
+    display: flex;
+    height: 4px;
+    border-radius: 99px;
+    overflow: hidden;
+    gap: 2px;
+    margin-bottom: 6px;
+  }
+
+  .nc-seg { border-radius: 99px; min-width: 4px; }
+  .nc-seg--ok { background: #3dd68c; }
+  .nc-seg--warn { background: #f0a030; }
+  .nc-seg--bad { background: #f05555; }
+
+  .nc-minibar-legend { display: flex; gap: 10px; }
+  .nc-leg { font-size: 10px; font-weight: 600; }
+  .nc-leg--ok { color: rgba(61,214,140,0.6); }
+  .nc-leg--warn { color: rgba(240,160,48,0.6); }
+  .nc-leg--bad { color: rgba(240,85,85,0.6); }
+
+  .nc-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 0 16px 12px;
+    background: rgba(240,85,85,0.05);
+    border: 1px solid rgba(240,85,85,0.12);
+    border-radius: 10px;
+    padding: 9px 12px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: rgba(240,110,110,0.85);
+  }
+
+  .nc-alert svg {
+    flex-shrink: 0;
+    color: #f05555;
+    margin-top: 1px;
+  }
+
+  .nc-comment {
+    font-size: 11px;
+    color: rgba(255,255,255,0.25);
+    line-height: 1.5;
+    margin: 0 16px 12px;
+    padding-left: 10px;
+    border-left: 2px solid rgba(255,255,255,0.06);
+  }
+
+  .nc-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 11px 16px;
+    background: transparent;
+    border: none;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.25);
+    cursor: pointer;
+    transition: color 0.2s, background 0.2s;
+  }
+
+  .nc-toggle:hover {
+    color: rgba(255,255,255,0.5);
+    background: rgba(255,255,255,0.02);
+  }
+
+  .nc-toggle .rchev {
+    transition: transform 0.25s ease;
+    flex-shrink: 0;
+  }
+
+  .nc-items {
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding: 10px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .nc-item {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 10px;
+    padding: 11px 12px;
+  }
+
+  .nc-item-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-bottom: 8px;
+  }
+
+  .nc-item-num {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.3);
+    flex-shrink: 0;
+  }
+
+  .nc-item-info { flex: 1; min-width: 0; }
+
+  .nc-item-name {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nc-item-sub {
+    display: block;
+    font-size: 10px;
+    color: rgba(255,255,255,0.28);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+  }
+
+  .nc-item-pct {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    flex-shrink: 0;
+  }
+
+  .nc-item-pct--ok { color: #3dd68c; }
+  .nc-item-pct--warn { color: #f0a030; }
+  .nc-item-pct--bad { color: #f05555; }
+
+  .nc-item-bar {
+    height: 3px;
+    border-radius: 99px;
+    background: rgba(255,255,255,0.05);
+    overflow: hidden;
+    margin-bottom: 9px;
+  }
+
+  .nc-item-bar-fill { height: 100%; border-radius: 99px; }
+  .nc-item-bar-fill--ok { background: #3dd68c; }
+  .nc-item-bar-fill--warn { background: #f0a030; }
+  .nc-item-bar-fill--bad { background: #f05555; }
+
+  .nc-item-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+
+  .nc-tag {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 2px 7px;
+    border-radius: 4px;
+    background: rgba(255,255,255,0.04);
+    color: rgba(255,255,255,0.28);
+  }
+
+  .nc-tag--ext { background: rgba(80,176,240,0.08); color: #50b0f0; }
+  .nc-tag--co { background: rgba(167,139,250,0.08); color: #a78bfa; }
+
+  .nc-item-note {
+    font-size: 10px;
+    color: rgba(255,255,255,0.22);
+    font-style: italic;
+    margin-top: 7px;
+    line-height: 1.4;
+    padding-left: 8px;
+    border-left: 2px solid rgba(255,255,255,0.06);
+  }
+
+  .rpt-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    gap: 12px;
+    color: rgba(255,255,255,0.15);
+  }
+
+  .rpt-empty p {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  @media (max-width: 480px) {
+    .nc-project { font-size: 16px; }
+    .nc-stat-n { font-size: 19px; }
+    .nc-stat-sep { margin: 0 10px; }
+    .nc-toggle { padding: 13px 16px; }
+  }
+
+  /* OPERATIONS — Workforce Detail */
+  .ops-proj-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 99px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.03);
+    color: rgba(255,255,255,0.4);
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .ops-proj-pill:hover {
+    border-color: rgba(201,168,76,0.3);
+    color: rgba(255,255,255,0.7);
+  }
+
+  .ops-proj-pill.active {
+    background: rgba(201,168,76,0.12);
+    border-color: rgba(201,168,76,0.4);
+    color: #c9a84c;
+  }
+
+  .ops-proj-pill .pill-count {
+    font-size: 10px;
+    font-weight: 800;
+    background: rgba(255,255,255,0.08);
+    border-radius: 99px;
+    padding: 1px 6px;
+    color: rgba(255,255,255,0.3);
+  }
+
+  .ops-proj-pill.active .pill-count {
+    background: rgba(201,168,76,0.2);
+    color: #c9a84c;
+  }
+
+  .ops-act-card {
+    background: #10151f;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 18px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+
+  .ops-act-card:hover { border-color: rgba(255,255,255,0.1); }
+
+  .ops-act-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .ops-act-header:active { opacity: 0.8; }
+
+  .ops-act-name {
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.02em;
+  }
+
+  .ops-act-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .ops-meta-tag {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 5px;
+    background: rgba(255,255,255,0.05);
+    color: rgba(255,255,255,0.35);
+  }
+
+  .ops-meta-tag.element { background: rgba(80,176,240,0.08); color: rgba(80,176,240,0.7); }
+  .ops-meta-tag.level { background: rgba(167,139,250,0.08); color: rgba(167,139,250,0.7); }
+  .ops-meta-tag.prog-ok { background: rgba(61,214,140,0.08); color: #3dd68c; }
+  .ops-meta-tag.prog-warn { background: rgba(240,160,48,0.08); color: #f0a030; }
+  .ops-meta-tag.prog-bad { background: rgba(240,85,85,0.08); color: #f05555; }
+
+  .ops-act-total {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .ops-act-total-num {
+    font-size: 26px;
+    font-weight: 900;
+    color: #c9a84c;
+    line-height: 1;
+    letter-spacing: -0.04em;
+  }
+
+  .ops-act-total-lbl {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255,255,255,0.2);
+  }
+
+  .ops-src-strip {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-top: 6px;
+  }
+
+  .ops-src-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 7px;
+  }
+
+  .ops-src-chip .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .ops-act-body {
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding: 16px 20px;
+    display: none;
+  }
+
+  .ops-trade-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  .ops-trade-cell {
+    background: rgba(255,255,255,0.025);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .ops-trade-num {
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: -0.03em;
+  }
+
+  .ops-trade-lbl {
+    font-size: 10px;
+    color: rgba(255,255,255,0.3);
+    font-weight: 500;
+  }
+
+  .ops-company-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.5);
+  }
+
+  .ops-company-chip b { color: #c9a84c; }
+
+  .ops-chevron {
+    transition: transform 0.25s ease;
+    color: rgba(255,255,255,0.2);
+    flex-shrink: 0;
+  }
+
+  .ops-act-card.open .ops-chevron { transform: rotate(180deg); }
+  .ops-act-card.open .ops-act-body { display: block; }
+
+  /* Alert banner */
+  @keyframes bannerIn {
+    from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(245,158,11,0.35); }
+    70% { box-shadow: 0 0 0 10px rgba(245,158,11,0); }
+    100% { box-shadow: 0 0 0 0 rgba(245,158,11,0); }
+  }
+
+  #alertBanner { animation: bannerIn 0.4s cubic-bezier(.22,.68,0,1.2) both; }
+  #alertBanner .alert-icon { animation: pulse-ring 2s ease-out infinite; }
+
+  .alert-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    padding: 3px 10px 3px 6px;
+    border-radius: 99px;
+    background: rgba(245,158,11,0.12);
+    color: #fbbf24;
+    border: 1px solid rgba(245,158,11,0.2);
+  }
+
+  .alert-chip::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f59e0b;
+    flex-shrink: 0;
+  }
+
+  .alert-dismiss-btn {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.35);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .alert-dismiss-btn:hover {
+    color: rgba(255,255,255,0.6);
+    border-color: rgba(255,255,255,0.15);
+  }
+
+  .alert-refresh-btn {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(245,158,11,0.3);
+    color: #fbbf24;
+    background: rgba(245,158,11,0.08);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .alert-refresh-btn:hover { background: rgba(245,158,11,0.15); }
+  .alert-refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+
+  /* =========================
+     MOBILE RESPONSIVE FIXES
+  ========================= */
+
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  main {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  .mobile-sheet-content {
+    padding: 12px 20px 32px;
+  }
+
+  .mobile-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .mobile-full {
+    grid-column: 1 / -1;
+  }
+
+  .m-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.25);
+    margin-bottom: 6px;
+  }
+
+  .mobile-filter-actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+    margin-top: 18px;
+    position: sticky;
+    bottom: 0;
+    background: linear-gradient(to top, #10151f 70%, rgba(16,21,31,0));
+    padding-top: 18px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .mobile-apply-btn {
+    width: 100%;
+    border: none;
+    border-radius: 14px;
+    background: #c9a84c;
+    color: #080a10;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 13px 16px;
+    cursor: pointer;
+  }
+
+  .mobile-clear-btn {
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.03);
+    color: rgba(255,255,255,0.45);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 13px 16px;
+    cursor: pointer;
+  }
+
+  @media (max-width: 639px) {
+    main {
+      padding-left: 12px !important;
+      padding-right: 12px !important;
+      padding-top: 72px !important;
+    }
+
+    header {
+      align-items: flex-start !important;
+      gap: 12px;
+    }
+
+    header h1 {
+      font-size: 20px !important;
+      line-height: 1.15 !important;
+    }
+
+    header p {
+      font-size: 12px !important;
+    }
+
+    #exportBtn,
+    #mFilterOpen {
+      width: 42px;
+      height: 42px;
+      padding: 0 !important;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0 !important;
+    }
+
+    #exportBtn svg,
+    #mFilterOpen svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .panel {
+      border-radius: 18px;
+    }
+
+    .kpi {
+      padding: 14px !important;
+      border-radius: 18px;
+    }
+
+    .kpi .w-10 {
+      width: 34px !important;
+      height: 34px !important;
+    }
+
+    .kpi-num {
+      font-size: 24px !important;
+    }
+
+    #mpSourceCards {
+      grid-template-columns: 1fr !important;
+    }
+
+    #mpSourceCards .panel {
+      padding: 16px !important;
+    }
+
+    #mpProjectComparison,
+    #mpTradesTable,
+    #mpCompaniesTable {
+      overflow-x: hidden;
+    }
+
+    .rpt-date-header {
+      align-items: flex-start;
+      gap: 8px;
+      flex-direction: column;
+    }
+
+    .nc-card {
+      border-radius: 18px;
+    }
+
+    .nc-top,
+    .nc-project,
+    .nc-eng,
+    .nc-shift-row,
+    .nc-stats,
+    .nc-minibar-wrap {
+      padding-left: 14px !important;
+      padding-right: 14px !important;
+    }
+
+    .nc-project {
+      white-space: normal !important;
+      overflow: visible !important;
+      text-overflow: unset !important;
+      line-height: 1.25 !important;
+    }
+
+    .nc-shift-row {
+      flex-wrap: wrap !important;
+      overflow: visible !important;
+    }
+
+    .nc-shift-sep {
+      display: none;
+    }
+
+    .nc-shift-time,
+    .nc-shift-dur {
+      font-size: 10px !important;
+    }
+
+    .nc-stats {
+      gap: 10px;
+    }
+
+    .nc-stat-sep {
+      margin: 0 4px !important;
+    }
+
+    .ops-act-header {
+      padding: 14px !important;
+      gap: 12px;
+    }
+
+    .ops-act-name {
+      font-size: 13px !important;
+    }
+
+    .ops-act-total-num {
+      font-size: 22px !important;
+    }
+
+    .ops-trade-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    .dtable {
+      min-width: 1050px;
+    }
+
+    #alertBanner .flex.items-start {
+      flex-direction: column;
+    }
+
+    #alertBanner .alert-icon {
+      width: 38px !important;
+      height: 38px !important;
+    }
+
+    #alertBanner .flex.items-center.gap-2.shrink-0 {
+      width: 100%;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+
+    .alert-refresh-btn,
+    .alert-dismiss-btn {
+      flex: 1;
+      min-width: 120px;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .mobile-filter-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .mobile-full {
+      grid-column: auto;
+    }
+
+    .ops-trade-grid {
+      grid-template-columns: 1fr !important;
+    }
+  }
+
+</style>
+
+
+  <script src="/js/theme.js"></script>
+</head>
+
+<body class="min-h-screen">
+  <%- include('../partials/navbar') %>
+
+  <main class="pt-20 pb-8 px-4 sm:px-6 lg:px-8">
+  <!-- MISSING REPORT ALERT BANNER -->
+
+  
+
+
+    <div class="max-w-[1360px] mx-auto">
+<div id="alertBanner" class="hidden mb-5">
+    <div style="
+      background: linear-gradient(135deg, rgba(245,158,11,0.10) 0%, rgba(245,158,11,0.05) 100%);
+      border: 1px solid rgba(245,158,11,0.28);
+      border-radius: 20px;
+      padding: 16px 18px;
+      position:relative; overflow:hidden;
+    ">
+      <!-- glow strip -->
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(245,158,11,0.6),transparent);border-radius:20px 20px 0 0;"></div>
+
+      <div class="flex items-start gap-3">
+        <!-- icon -->
+        <div class="alert-icon shrink-0" style="
+          width:42px;height:42px;border-radius:13px;
+          background:rgba(245,158,11,0.15);
+          border:1px solid rgba(245,158,11,0.25);
+          display:flex;align-items:center;justify-content:center;
+        ">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+
+        <!-- content -->
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-center gap-2 mb-0.5">
+            <p style="color:#fbbf24;font-size:14px;font-weight:800;letter-spacing:-0.01em;">Missing Reports <span id="alertDateBadge" style="font-size:12px;color:rgba(251,191,36,0.75);font-weight:600;margin-left:4px;"></span></p>
+            <span id="alertCountBadge" style="
+              font-size:11px;font-weight:700;padding:2px 8px;border-radius:99px;
+              background:rgba(245,158,11,0.18);color:#fbbf24;
+              border:1px solid rgba(245,158,11,0.3);
+            "></span>
+          </div>
+          <div id="alertEngineers" class="flex flex-wrap gap-1.5 mt-2"></div>
+        </div>
+
+        <!-- actions -->
+        <div class="flex items-center gap-2 shrink-0 mt-0.5">
+          <button id="alertRefreshBtn" onclick="triggerAlertCheck()" class="alert-refresh-btn">
+            <span id="alertRefreshLabel">Refresh</span>
+          </button>
+          <button onclick="dismissAlert()" class="alert-dismiss-btn">Dismiss</button>
+        </div>
+      </div>
+    </div>
+  </div>
+      <!-- HEADER -->
+      <header class="flex items-center justify-between mb-7">
+        <div>
+          <h1 class="text-[22px] sm:text-[28px] font-extrabold text-white tracking-tight leading-none">Operations Dashboard</h1>
+          <p class="text-[13px] text-white/30 font-medium mt-1">Agile Prime General Contracting L.L.C.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="mFilterOpen" class="lg:hidden flex items-center gap-1.5 text-[13px] font-semibold text-white/50 hover:text-white bg-white/[0.04] border border-white/[0.07] rounded-[14px] px-3.5 py-2.5 transition active:scale-95">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+            Filter
+          </button>
+          <button id="exportBtn" class="flex items-center gap-1.5 text-[13px] font-bold bg-gold hover:bg-gold-light text-base-950 rounded-[14px] px-4 py-2.5 transition active:scale-95 shadow-lg shadow-gold/10">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            Export Excel
+          </button>
+        </div>
+      </header>
+
+      <!-- DESKTOP TABS -->
+      <nav class="hidden lg:flex items-center gap-1 mb-7 p-1.5 rounded-2xl bg-white/[0.02] border border-white/[0.04] w-fit">
+        <button data-tab="overview" class="dtab on">Overview</button>
+        <button data-tab="operations" class="dtab">⚙ Operations</button>
+        <button data-tab="charts" class="dtab">Analytics</button>
+        <button data-tab="reports" class="dtab">Reports</button>
+        <button data-tab="table" class="dtab">Data Table</button>
+      </nav>
+
+      <!-- DESKTOP FILTERS -->
+      <div id="deskFilters" class="hidden lg:block mb-7">
+        <div class="panel px-5 py-4">
+          <div class="grid grid-cols-4 xl:grid-cols-8 gap-3">
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-[0.1em] text-white/25 mb-1.5">From</label>
+             <input type="date" id="fFromDate" class="fi" onclick="this.showPicker()">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-[0.1em] text-white/25 mb-1.5">To</label>
+              <input type="date" id="fToDate" class="fi" onclick="this.showPicker()">
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-[0.1em] text-white/25 mb-1.5">Project</label>
+              <div style="display:flex;align-items:center;gap:6px">
+                <select id="fProject" class="fi" style="background-color:#0d1528;color:#e2e8f0;flex:1" onchange="updateTimelineBtn(this)"><option value="">All</option><% filterOptions.projects.forEach(p => { %><option value="<%= p.id %>" data-name="<%= p.name %>"><%= p.name %></option><% }) %></select>
+                <a id="timelineBtn" href="#" target="_blank" title="View Project Timeline" style="display:none;padding:6px 9px;border-radius:8px;border:1px solid rgba(201,168,76,0.25);background:rgba(201,168,76,0.07);color:#c9a84c;text-decoration:none;transition:all .18s;flex-shrink:0" onmouseover="this.style.background='rgba(201,168,76,0.15)'" onmouseout="this.style.background='rgba(201,168,76,0.07)'">
+                  <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                </a>
+              </div>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-[0.1em] text-white/25 mb-1.5">Engineer</label>
+              <select id="fEngineer" class="fi" style="background-color:#0d1528;color:#e2e8f0"><option value="">All</option><% filterOptions.engineers.forEach(e => { %><option value="<%= e.id %>"><%= e.name %></option><% }) %></select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-[0.1em] text-white/25 mb-1.5">Activity</label>
+              <select id="fActivity" class="fi" style="background-color:#0d1528;color:#e2e8f0"><option value="">All</option><% filterOptions.activities.forEach(a => { %><option value="<%= a %>"><%= a %></option><% }) %></select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-[0.1em] text-white/25 mb-1.5">Level</label>
+              <select id="fLevel" class="fi" style="background-color:#0d1528;color:#e2e8f0"><option value="">All</option><% filterOptions.levels.forEach(l => { %><option value="<%= l %>"><%= l %></option><% }) %></select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-[0.1em] text-white/25 mb-1.5">Source</label>
+              <select id="fSourceType" class="fi" style="background-color:#0d1528;color:#e2e8f0"><option value="">All</option><% filterOptions.sourceTypes.forEach(s => { %><option value="<%= s %>"><%= s %></option><% }) %></select>
+            </div>
+            <div>
+              <label class="block text-[10px] font-bold uppercase tracking-[0.1em] text-white/25 mb-1.5">Search</label>
+              <input type="text" id="fSearch" class="fi" placeholder="Keyword...">
+            </div>
+          </div>
+          <div class="flex items-center gap-2 mt-4">
+            <button id="applyFilters" class="text-[13px] font-bold bg-gold hover:bg-gold-light text-base-950 rounded-xl px-6 py-2.5 transition">Apply</button>
+            <button id="clearFilters" class="text-[13px] font-medium text-white/30 hover:text-white/60 border border-white/[0.08] hover:border-white/[0.15] rounded-xl px-5 py-2.5 transition">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- LIMIT WARNING BANNER -->
+      <div id="limitBanner" class="hidden mb-4 px-4 py-3 rounded-xl text-xs font-semibold"
+        style="background:rgba(240,160,48,0.1);border:1px solid rgba(240,160,48,0.22);color:#f0a030;"></div>
+
+      <!-- LOADING -->
+      <div id="dashLoading" class="flex flex-col items-center justify-center py-32">
+        <div class="w-10 h-10 border-[2.5px] border-gold/20 border-t-gold rounded-full animate-spin"></div>
+        <p class="text-white/25 text-sm font-medium mt-5">Loading dashboard…</p>
+      </div>
+
+      <!-- CONTENT -->
+      <div id="dashContent" class="hidden">
+
+        <!-- OVERVIEW -->
+        <section id="v-overview" class="view is-active space-y-7">
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div class="kpi rise rise-1">
+              <div class="w-10 h-10 rounded-[12px] bg-gold/10 flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-gold" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+              </div>
+              <p class="text-[11px] font-semibold text-white/30 uppercase tracking-wide mb-1.5">Reports</p>
+              <p class="kpi-num text-white" id="kpiReports">—</p>
+            </div>
+            <div class="kpi rise rise-2">
+              <div class="w-10 h-10 rounded-[12px] bg-warn/10 flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-warn" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              </div>
+              <p class="text-[11px] font-semibold text-white/30 uppercase tracking-wide mb-1.5">Activities</p>
+              <p class="kpi-num text-warn" id="kpiActivities">—</p>
+            </div>
+            <div class="kpi rise rise-3">
+              <div class="w-10 h-10 rounded-[12px] bg-ok/10 flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-ok" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              </div>
+              <p class="text-[11px] font-semibold text-white/30 uppercase tracking-wide mb-1.5">Manpower</p>
+              <p class="kpi-num text-ok" id="kpiManpower">—</p>
+            </div>
+            <div class="kpi rise rise-4">
+              <div class="w-10 h-10 rounded-[12px] bg-info/10 flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-info" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
+              </div>
+              <p class="text-[11px] font-semibold text-white/30 uppercase tracking-wide mb-1.5">Projects</p>
+              <p class="kpi-num text-info" id="kpiProjects">—</p>
+            </div>
+
+          </div>
+
+
+
+          <!-- ══════════════════════════════════════════════════
+               MANPOWER BREAKDOWN SECTION
+          ═══════════════════════════════════════════════════ -->
+          <div id="manpowerSection" class="space-y-4">
+            <p class="text-[11px] font-bold uppercase tracking-[0.1em] text-white/20">Manpower Breakdown</p>
+
+            <!-- Row 1: Source cards -->
+            <div class="grid grid-cols-3 gap-3" id="mpSourceCards">
+              <div class="panel p-4">
+                <p class="text-[10px] font-bold uppercase tracking-wide text-white/25 mb-2">In-House</p>
+                <p class="text-2xl font-bold text-ok" id="mpInHouse">—</p>
+                <!-- <p class="text-[11px] text-white/30 mt-1">عمالتك</p> -->
+              </div>
+              <div class="panel p-4">
+                <p class="text-[10px] font-bold uppercase tracking-wide text-white/25 mb-2">Supplier</p>
+                <p class="text-2xl font-bold text-info" id="mpSupplier">—</p>
+                <!-- <p class="text-[11px] text-white/30 mt-1">سبلاير</p> -->
+              </div>
+              <div class="panel p-4">
+                <p class="text-[10px] font-bold uppercase tracking-wide text-white/25 mb-2">Subcontractor</p>
+                <p class="text-2xl font-bold text-warn" id="mpSubcontractor">—</p>
+                <!-- <p class="text-[11px] text-white/30 mt-1">ساب كنتراكتور</p> -->
+              </div>
+            </div>
+
+            <!-- Row 2: Trades + Companies side by side -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              <!-- Trades breakdown -->
+              <div class="panel p-5">
+                <p class="text-[13px] font-bold text-white mb-4">Manpower by Trade</p>
+                <div id="mpTradesTable" class="space-y-2.5"></div>
+              </div>
+
+              <!-- Per company breakdown -->
+              <div class="panel p-5">
+                <p class="text-[13px] font-bold text-white mb-4">External Companies</p>
+                <div id="mpCompaniesTable" class="space-y-2"></div>
+                <p id="mpNoCompanies" class="hidden text-[12px] text-white/20 text-center py-4">No external labor in selected period</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Project Comparison -->
+          <div class="panel p-5">
+            <div class="flex items-center justify-between mb-4">
+              <p class="text-[13px] font-bold text-white">Manpower by Project</p>
+              <span class="text-[10px] font-semibold uppercase tracking-wide text-white/20">In-House · Supplier · Sub-Con · per company</span>
+            </div>
+            <div id="mpProjectComparison" class="space-y-2"></div>
+          </div>
+
+          <div class="panel p-5">
+            <div class="flex items-center justify-between mb-5">
+              <p class="text-[13px] font-bold text-white">Project Overview</p>
+              <span class="text-[10px] font-semibold uppercase tracking-wide text-white/20">Manpower by Project</span>
+            </div>
+            <div style="height: 280px;"><canvas id="chartCombo1"></canvas></div>
+          </div>
+        </section>
+
+        <!-- CHARTS -->
+        <section id="v-charts" class="view space-y-4">
+
+          <!-- Row 1: Engineer Workload + Labor Source Mix -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="panel p-5">
+              <p class="text-[13px] font-bold text-white mb-1">Engineer Workload</p>
+              <p class="text-[11px] text-gray-500 mb-4">Total activities logged per engineer</p>
+              <div style="height:280px"><canvas id="chartEngineer"></canvas></div>
+            </div>
+            <div class="panel p-5">
+              <p class="text-[13px] font-bold text-white mb-1">Labor Source Mix</p>
+              <p class="text-[11px] text-gray-500 mb-4">Total workers by source type</p>
+              <div style="height:280px"><canvas id="chartSource"></canvas></div>
+            </div>
+          </div>
+
+          <!-- Row 3: Labor Analytics deep-dive -->
+          <div class="panel p-5">
+            <div class="flex items-center justify-between mb-1">
+              <div>
+                <p class="text-[13px] font-bold text-white">Labor Source Analytics</p>
+                <p class="text-[11px] text-gray-500 mt-0.5">Detailed breakdown of workforce distribution across labor sources</p>
+              </div>
+              <!-- Sub-tabs -->
+              <div class="flex gap-1 bg-white/5 rounded-lg p-1" id="laborTabBtns">
+                <button class="labor-tab-btn active" data-ltab="trades" style="padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:all .2s;background:rgba(201,168,76,0.15);color:#c9a84c">Trade Mix</button>
+                <button class="labor-tab-btn" data-ltab="projects" style="padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:all .2s;background:transparent;color:#64748b">By Project</button>
+                <button class="labor-tab-btn" data-ltab="trend" style="padding:5px 12px;border-radius:6px;font-size:11px;font-weight:600;border:none;cursor:pointer;transition:all .2s;background:transparent;color:#64748b">Daily Trend</button>
+              </div>
+            </div>
+
+            <!-- Trade Mix tab -->
+            <div id="ltab-trades" class="labor-tab-panel mt-4">
+              <div style="height:300px"><canvas id="chartTrades"></canvas></div>
+            </div>
+
+            <!-- By Project tab -->
+            <div id="ltab-projects" class="labor-tab-panel mt-4" style="display:none">
+              <div style="height:320px"><canvas id="chartProjectSources"></canvas></div>
+            </div>
+
+            <!-- Daily Trend tab -->
+            <div id="ltab-trend" class="labor-tab-panel mt-4" style="display:none">
+              <div style="height:300px"><canvas id="chartLaborTrend"></canvas></div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- REPORTS -->
+        <section id="v-reports" class="view space-y-4">
+          <div class="flex items-center justify-between">
+            <p class="text-[13px] font-bold text-white">Daily Reports</p>
+            <span id="reportsCountBadge" class="text-[11px] font-bold px-3 py-1.5 rounded-full bg-white/[0.04] text-white/30 border border-white/[0.05]">0</span>
+          </div>
+          <div id="groupedReportsContainer" class="space-y-3"></div>
+        </section>
+
+
+        <!-- OPERATIONS WORKFORCE PANEL -->
+        <section id="v-operations" class="view space-y-4">
+
+          <!-- Header -->
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p class="text-[15px] font-extrabold text-white tracking-tight">Workforce Detail</p>
+              <p class="text-[12px] text-white/30 mt-0.5">Workers per project · activity · element · trade</p>
+            </div>
+            <div id="opsTotalBadge" class="flex items-center gap-2.5 px-4 py-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.06] w-fit">
+              <span class="text-[10px] text-white/25 font-bold uppercase tracking-widest">Total Workers</span>
+              <span id="opsTotalNum" class="text-[22px] font-extrabold text-gold leading-none">—</span>
+            </div>
+          </div>
+
+          <!-- Project selector pills -->
+          <div id="opsProjPills" class="flex gap-2 flex-wrap"></div>
+
+          <!-- Activities container -->
+          <div id="opsActivitiesContainer" class="space-y-3"></div>
+
+          <!-- Empty -->
+          <div id="opsEmpty" class="hidden text-center py-20 text-white/20">
+            <svg class="w-10 h-10 mx-auto mb-3 opacity-40" fill="none" stroke="currentColor" stroke-width="1.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <p class="text-[13px] font-semibold">No workforce data for selected filters</p>
+          </div>
+
+        </section>
+
+        <!-- TABLE -->
+        <section id="v-table" class="view space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <p class="text-[13px] font-bold text-white">Activity Details</p>
+            <input type="text" id="tableSearch" class="fi sm:max-w-[300px]" placeholder="Quick filter…">
+          </div>
+          <div class="panel overflow-hidden">
+            <div class="overflow-x-auto" style="max-height: 75vh;">
+              <table class="dtable w-full">
+                <thead>
+                  <tr>
+                    <th class="px-4 py-3 text-left">Report ID</th>
+                    <th class="px-4 py-3 text-left">Date</th>
+                    <th class="px-4 py-3 text-left">Shift</th>
+                    <th class="px-4 py-3 text-left">Time</th>
+                    <th class="px-4 py-3 text-left">Engineer</th>
+                    <th class="px-4 py-3 text-left">Site</th>
+                    <th class="px-4 py-3 text-left">#</th>
+                    <th class="px-4 py-3 text-left">Element</th>
+                    <th class="px-4 py-3 text-left">Level</th>
+                    <th class="px-4 py-3 text-left">Activity</th>
+                    <th class="px-4 py-3 text-left">Progress</th>
+                    <th class="px-4 py-3 text-left">MP</th>
+                    <th class="px-4 py-3 text-left">Source</th>
+                    <th class="px-4 py-3 text-left">Company</th>
+                  </tr>
+                </thead>
+                <tbody id="detailTableBody" class="divide-y divide-white/[0.03]"></tbody>
+              </table>
+            </div>
+            <div id="tableEmpty" class="hidden text-center py-16 text-white/20 text-sm font-medium">No data to display</div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+
+  <!-- MOBILE FILTER SHEET -->
+  <div id="sheetBg" class="sheet-bg"></div>
+
+  <div id="sheet" class="sheet">
+    <div class="sheet-handle"></div>
+
+    <div class="mobile-sheet-content">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-[15px] font-bold text-white">Filters</p>
+
+        <button id="sheetClose" class="text-white/30 hover:text-white p-2 transition">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="mobile-filter-grid">
+        <div>
+          <label class="m-label">From</label>
+          <input type="date" id="mFromDate" class="fi">
+        </div>
+
+        <div>
+          <label class="m-label">To</label>
+          <input type="date" id="mToDate" class="fi">
+        </div>
+
+        <div class="mobile-full">
+          <label class="m-label">Project</label>
+          <select id="mProject" class="fi">
+            <option value="">All Projects</option>
+            <% filterOptions.projects.forEach(p => { %>
+              <option value="<%= p.id %>"><%= p.name %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="mobile-full">
+          <label class="m-label">Engineer</label>
+          <select id="mEngineer" class="fi">
+            <option value="">All Engineers</option>
+            <% filterOptions.engineers.forEach(e => { %>
+              <option value="<%= e.id %>"><%= e.name %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div>
+          <label class="m-label">Activity</label>
+          <select id="mActivity" class="fi">
+            <option value="">All</option>
+            <% filterOptions.activities.forEach(a => { %>
+              <option value="<%= a %>"><%= a %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div>
+          <label class="m-label">Level</label>
+          <select id="mLevel" class="fi">
+            <option value="">All</option>
+            <% filterOptions.levels.forEach(l => { %>
+              <option value="<%= l %>"><%= l %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="mobile-full">
+          <label class="m-label">Source</label>
+          <select id="mSourceType" class="fi">
+            <option value="">All Sources</option>
+            <% filterOptions.sourceTypes.forEach(s => { %>
+              <option value="<%= s %>"><%= s %></option>
+            <% }) %>
+          </select>
+        </div>
+
+        <div class="mobile-full">
+          <label class="m-label">Search</label>
+          <input type="text" id="mSearch" class="fi" placeholder="Keyword…">
+        </div>
+      </div>
+
+      <div class="mobile-filter-actions">
+        <button id="mApply" class="mobile-apply-btn">Apply Filters</button>
+        <button id="mClear" class="mobile-clear-btn">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <nav class="bnav lg:hidden">
+    <div class="flex">
+      <button class="bnav-btn on" data-tab="overview">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v5a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v2a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z"/></svg>
+        <span>Overview</span>
+      </button>
+      <button class="bnav-btn" data-tab="operations">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span>Ops</span>
+      </button>
+      <button class="bnav-btn" data-tab="charts">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span>Analytics</span>
+      </button>
+      <button class="bnav-btn" data-tab="reports">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        <span>Reports</span>
+      </button>
+      <button class="bnav-btn" data-tab="table">
+        <svg fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+        <span>Table</span>
+      </button>
+    </div>
+  </nav>
+
+  <script>
+    // Injected by server — controls alert visibility without extra API round-trip
+    window.SITE_CONFIG = window.SITE_CONFIG || {};
+    <%
+      const _u = typeof adminUser !== 'undefined' ? adminUser : null;
+      const _canAlert = _u && (
+        _u.role === 'superadmin' ||
+        _u.permissions?.canViewAlerts === true
+      );
+    %>
+    <% var _alertVal = _canAlert ? 'true' : 'false'; %>
+window.SITE_CONFIG.canViewAlerts = <%- _alertVal %>;
+    // Project ID map for timeline links
+    window.PROJECT_ID_MAP = {};
+   <% filterOptions.projects.forEach(p => { %>window.PROJECT_ID_MAP[<%- JSON.stringify(p.name) %>] = <%- JSON.stringify(p.id) %>;<% }) %>
+  </script>
+  <script src="/js/dashboard.js"></script>
+  <script src="/js/dashboard-manpower.js"></script>
+  
+
+</body>
+</html>
