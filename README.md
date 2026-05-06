@@ -9,7 +9,7 @@ and executive dashboards — built for the UAE construction industry.**
 
 ---
 
-Developed by **[Kerlos Alfy](https://kodeaa.com)** · Founder, [Kodea Digital Creative Studio](https://kodeaa.com)
+Developed by **[Kerlos Alfy](https://kodeaa.com)** · Founder, [Kodea Digital](https://kodeaa.com)
 
 </div>
 
@@ -317,7 +317,7 @@ Engineers can be excluded from the alert individually (e.g. during leave) via th
 | | |
 |---|---|
 | Developer | Kerlos Alfy |
-| Studio | [Kodea Digital Creative Studio](https://kodeaa.com) |
+| Studio | [Kodea](https://kodeaa.com) |
 | Website | [kodeaa.com](https://kodeaa.com) |
 | Pilot Client | ReportoGeneral Contracting L.L.C. |
 | Location | Dubai, UAE |
